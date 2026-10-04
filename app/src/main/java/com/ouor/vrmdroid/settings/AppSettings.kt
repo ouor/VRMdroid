@@ -46,6 +46,11 @@ class AppSettings(val prefs: SharedPreferences) {
     val invertRoll: Boolean get() = prefs.getBoolean(KEY_INVERT_ROLL, false)
 
     val trackerBackend: String get() = prefs.getString(KEY_TRACKER, "mediapipe")!!
+    /**
+     * GPU by default: with the avatar preview running, the CPU delegate was no faster (34 ms p50
+     * either way on a Dimensity 8300) but had a worse p95 (57 vs 51 ms), ran hotter and used more
+     * CPU.
+     */
     val useGpu: Boolean get() = prefs.getBoolean(KEY_USE_GPU, true)
 
     /** 0 = raw, 100 = heavy smoothing. */
