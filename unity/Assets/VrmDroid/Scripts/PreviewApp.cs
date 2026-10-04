@@ -41,12 +41,24 @@ namespace VrmDroid
         bool _multiTouchUntilRelease;
         bool _lowPower;
 
-        // Tracking arrives at 15-30 Hz, so drawing faster than 30 fps only burns battery during a
-        // long stream. Touch gestures get 60 fps so orbiting stays smooth; the dimmed screen
-        // (nobody looking) gets a trickle that keeps the player alive for an instant wake-up.
-        const int IdleFps = 30;
+        // The avatar only changes when a tracking packet arrives (no interpolation), so idle
+        // frames are paced to the tracking rate, rounded up to a rate the 60 Hz panel divides
+        // evenly. A hot phone tracking at 18 Hz then renders 20 fps instead of 30, easing the GPU
+        // exactly when it matters. Touch gestures get 60 fps so orbiting stays smooth; the dimmed
+        // screen (nobody looking) gets a trickle that keeps the player alive for an instant wake-up.
+        const int MaxIdleFps = 30;
         const int InteractiveFps = 60;
         const int LowPowerFps = 5;
+        // Tracking rate (Hz) above which each paced step is needed; stepping back down waits until
+        // the rate is PacingHysteresis below, so a rate hovering at a boundary doesn't flap.
+        static readonly (float aboveHz, int fps)[] PacingSteps = { (21f, 30), (16f, 20), (0f, 15) };
+        const float PacingHysteresis = 2f;
+
+        TrackingReceiver _receiver;
+        int _pacedFps = MaxIdleFps;
+        float _trackingHz = -1f;
+        long _lastPacketCount;
+        float _rateWindowStart;
 
         // Fraction of the screen resolution the avatar is drawn at, then upscaled. Per-pixel MToon
         // work dominates the GPU cost, and on a phone screen the difference is hard to see.
@@ -73,7 +85,8 @@ namespace VrmDroid
 
         void Awake()
         {
-            Application.targetFrameRate = IdleFps;
+            Application.targetFrameRate = MaxIdleFps;
+            _receiver = GetComponent<TrackingReceiver>();
             if (GraphicsSettings.currentRenderPipeline is UniversalRenderPipelineAsset urp) urp.renderScale = RenderScale;
             Screen.sleepTimeout = SleepTimeout.NeverSleep;
             if (avatar == null) avatar = GetComponent<AvatarController>();
@@ -119,7 +132,8 @@ namespace VrmDroid
         void Update()
         {
             var touching = Touchscreen.current != null && Touchscreen.current.primaryTouch.press.isPressed;
-            var fps = _lowPower ? LowPowerFps : touching ? InteractiveFps : IdleFps;
+            UpdatePacing();
+            var fps = _lowPower ? LowPowerFps : touching ? InteractiveFps : _pacedFps;
             if (Application.targetFrameRate != fps) Application.targetFrameRate = fps;
 
             HandleInput();
@@ -127,6 +141,34 @@ namespace VrmDroid
             var rotation = Quaternion.Euler(_orbitPitch, 180f + _orbitYaw, 0f);
             viewCamera.transform.SetPositionAndRotation(_focus - rotation * Vector3.forward * distance, rotation);
             LogFrameRate();
+        }
+
+        /// <summary>Measures the tracking packet rate once a second and picks the idle frame rate.</summary>
+        void UpdatePacing()
+        {
+            if (_receiver == null) return;
+            var elapsed = Time.unscaledTime - _rateWindowStart;
+            if (elapsed < 1f) return;
+            var count = _receiver.ReceivedCount;
+            var rate = (count - _lastPacketCount) / elapsed;
+            _lastPacketCount = count;
+            _rateWindowStart = Time.unscaledTime;
+            _trackingHz = _trackingHz < 0f ? rate : Mathf.Lerp(_trackingHz, rate, 0.5f);
+
+            var want = 15;
+            foreach (var (aboveHz, fps) in PacingSteps)
+            {
+                if (_trackingHz > aboveHz) { want = fps; break; }
+            }
+            if (want < _pacedFps)
+            {
+                // Only step down once clearly below the current step's threshold.
+                foreach (var (aboveHz, fps) in PacingSteps)
+                {
+                    if (fps == _pacedFps && _trackingHz > aboveHz - PacingHysteresis) want = _pacedFps;
+                }
+            }
+            _pacedFps = want;
         }
 
         void LogFrameRate()
@@ -143,7 +185,7 @@ namespace VrmDroid
             if (elapsed < PerfLogSeconds) return;
             var gpu = _timedFrames > 0 ? $"{_gpuMs / _timedFrames:F1}" : "-";
             var cpu = _timedFrames > 0 ? $"{_cpuMs / _timedFrames:F1}" : "-";
-            Debug.Log($"[VrmPerf] unity fps={_perfFrames / elapsed:F1} target={Application.targetFrameRate} gpu={gpu}ms main={cpu}ms scale={RenderScale}");
+            Debug.Log($"[VrmPerf] unity fps={_perfFrames / elapsed:F1} target={Application.targetFrameRate} tracking={_trackingHz:F1}Hz gpu={gpu}ms main={cpu}ms scale={RenderScale}");
             _perfFrames = 0;
             _perfWindowStart = Time.unscaledTime;
             _gpuMs = _cpuMs = 0;
