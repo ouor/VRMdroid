@@ -31,7 +31,14 @@ include(":app")
 // Android Library, see README.md). The host app builds and runs without it; the avatar preview
 // button is disabled in that case.
 val unityLibraryDir = file("unity/Builds/AndroidExport/unityLibrary")
-if (unityLibraryDir.resolve("build.gradle").exists() || unityLibraryDir.resolve("build.gradle.kts").exists()) {
+// -Pvrmdroid.unity=false builds with the stub even when an export exists (e.g. to check that
+// the stub still compiles).
+val unityEnabled = providers.gradleProperty("vrmdroid.unity").orNull != "false"
+val unityExported = unityLibraryDir.resolve("build.gradle").exists() || unityLibraryDir.resolve("build.gradle.kts").exists()
+if (unityEnabled && unityExported) {
+    check(unityLibraryDir.resolve("../gradle.properties").exists()) {
+        "Incomplete Unity export at $unityLibraryDir (gradle.properties missing); re-run VRMDroid > Export Android Library."
+    }
     include(":unityLibrary")
     project(":unityLibrary").projectDir = unityLibraryDir
 

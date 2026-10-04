@@ -26,6 +26,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleService
 import com.ouor.vrmdroid.MainActivity
 import com.ouor.vrmdroid.R
+import com.ouor.vrmdroid.avatar.UnityHost
 import com.ouor.vrmdroid.output.IFacialMocapSender
 import com.ouor.vrmdroid.output.PreviewSender
 import com.ouor.vrmdroid.output.TrackingSender
@@ -34,6 +35,7 @@ import com.ouor.vrmdroid.processing.FaceProcessor
 import com.ouor.vrmdroid.processing.TrackingResult
 import com.ouor.vrmdroid.settings.AppSettings
 import com.ouor.vrmdroid.settings.OutputProtocol
+import com.ouor.vrmdroid.settings.TrackingConfig
 import com.ouor.vrmdroid.tracking.FaceFrame
 import com.ouor.vrmdroid.tracking.FaceTracker
 import com.ouor.vrmdroid.tracking.FaceTrackerFactory
@@ -45,7 +47,7 @@ import java.util.concurrent.atomic.AtomicReference
 
 /**
  * Owns the camera, the tracker and the network senders. Runs as a camera foreground service so
- * tracking continues while the Unity preview (another activity/process) is in front.
+ * tracking and sending continue while the app is in the background.
  */
 class TrackingService : LifecycleService() {
 
@@ -88,7 +90,11 @@ class TrackingService : LifecycleService() {
     private var frameCount = 0
     private var fpsWindowStart = SystemClock.uptimeMillis()
 
+    /** Settings snapshot for the per-frame path; replaced whenever a preference changes. */
+    @Volatile private var config = TrackingConfig()
+
     private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        config = TrackingConfig.from(settings)
         when (key) {
             in AppSettings.RESTART_KEYS -> analysisExecutor.execute { recreateTracker() }
             AppSettings.KEY_PROTOCOL, AppSettings.KEY_TARGET_HOST, AppSettings.KEY_VMC_PORT,
@@ -99,6 +105,7 @@ class TrackingService : LifecycleService() {
     override fun onCreate() {
         super.onCreate()
         settings = AppSettings(this)
+        config = TrackingConfig.from(settings)
         settings.prefs.registerOnSharedPreferenceChangeListener(prefsListener)
     }
 
@@ -198,12 +205,13 @@ class TrackingService : LifecycleService() {
             TrackingHub.calibrationRequested = false
             processor.requestCalibration()
         }
-        val result = processor.process(frame, settings)
+        val cfg = config
+        val result = processor.process(frame, cfg)
         TrackingHub.publish(result)
         updateFps(frame)
 
         val now = SystemClock.uptimeMillis()
-        if (now - lastSendAt < 1000L / settings.sendRate - 2) return
+        if (now - lastSendAt < 1000L / cfg.sendRate - 2) return
         lastSendAt = now
         // Latest-wins hand-off so a slow network never backs up the tracker.
         if (pendingSend.getAndSet(result) == null) {
@@ -212,7 +220,7 @@ class TrackingService : LifecycleService() {
                     val r = pendingSend.getAndSet(null) ?: return@execute
                     var failed: Exception? = null
                     for (s in senders) {
-                        try { s.send(r, settings) } catch (e: Exception) { failed = e }
+                        try { s.send(r, cfg) } catch (e: Exception) { failed = e }
                     }
                     onSendResult(failed)
                 }
@@ -241,7 +249,9 @@ class TrackingService : LifecycleService() {
     /** Runs on [networkExecutor]. */
     private fun recreateSenders() {
         senders.forEach { runCatching { it.close() } }
-        val list = mutableListOf<TrackingSender>(PreviewSender())
+        // The local avatar feed is only useful when Unity is linked into this build.
+        val list = mutableListOf<TrackingSender>()
+        if (UnityHost.AVAILABLE) list += PreviewSender()
         try {
             when (settings.protocol) {
                 OutputProtocol.IFACIALMOCAP -> list += IFacialMocapSender(

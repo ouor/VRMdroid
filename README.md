@@ -31,12 +31,15 @@ PC의 VSeeFace / VNyan / Warudo 등으로 보내는 앱입니다. 폰에서는 U
      "C:/Program Files/Unity/Hub/Editor/6000.6.3f1/Editor/Unity.exe" -batchmode -quit -projectPath unity -executeMethod VrmDroid.Editor.AndroidExport.ExportFromCommandLine -logFile unity/Logs/export.log
      ```
    - 결과물은 `unity/Builds/AndroidExport/unityLibrary`에 생기고, `settings.gradle.kts`가 자동으로 포함합니다.
-     이 폴더가 없으면 앱은 Unity 없이 빌드되고 "아바타 미리보기" 버튼만 비활성화됩니다.
+     이 폴더가 없으면 앱은 Unity 없이(랜드마크 화면만) 빌드됩니다.
+   - Unity export가 있어도 `-Pvrmdroid.unity=false`를 주면 Unity 없는 빌드를 만들 수 있습니다
+     (두 가지 소스셋 `app/src/unity`, `app/src/nounity`가 모두 컴파일되는지 확인할 때 사용).
 2. **앱 빌드·설치**
    ```bash
    ./gradlew :app:installDebug
    ```
-   MediaPipe 모델(`face_landmarker.task`)은 첫 빌드 때 자동으로 내려받습니다.
+   MediaPipe 모델(`face_landmarker.task`, 버전 1 고정)은 첫 빌드 때 `app/build/generated/mlmodel`로 내려받고
+   SHA-256을 검증합니다. 테스트는 `./gradlew :app:testDebugUnitTest`.
 
 ## 사용법
 

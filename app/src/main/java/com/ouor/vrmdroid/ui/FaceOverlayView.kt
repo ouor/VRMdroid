@@ -8,6 +8,7 @@ import android.graphics.Paint
 import android.util.AttributeSet
 import android.view.View
 import android.view.ViewOutlineProvider
+import com.ouor.vrmdroid.R
 import com.ouor.vrmdroid.processing.TrackingResult
 import com.ouor.vrmdroid.tracking.Arkit
 import java.util.Locale
@@ -54,7 +55,7 @@ class FaceOverlayView @JvmOverloads constructor(
         } else {
             canvas.drawColor(Color.rgb(18, 18, 22))
             if (r == null) {
-                canvas.drawText("트래킹이 꺼져 있습니다", 16 * density, 28 * density, textPaint)
+                canvas.drawText(context.getString(R.string.overlay_tracking_off), 16 * density, 28 * density, textPaint)
                 return
             }
         }
@@ -85,7 +86,7 @@ class FaceOverlayView @JvmOverloads constructor(
             ty += line
             canvas.drawText(String.format(Locale.US, "x %5.2f  y %5.2f  z %5.2f m", s.x, s.y, s.z), 12 * density, ty, textPaint)
         } else {
-            canvas.drawText("얼굴을 찾는 중…", 12 * density, ty, textPaint)
+            canvas.drawText(context.getString(R.string.overlay_searching), 12 * density, ty, textPaint)
         }
 
         // Top blendshapes.

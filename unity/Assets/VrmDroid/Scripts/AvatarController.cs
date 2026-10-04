@@ -28,6 +28,10 @@ namespace VrmDroid
         [SerializeField] float armDownAngle = 72f;
         [Tooltip("Slight elbow bend so the arms don't look stiff.")]
         [SerializeField] float elbowBend = 12f;
+        [Tooltip("Seconds without a face before the avatar relaxes to a neutral face and pose.")]
+        [SerializeField] float lostFaceHold = 1f;
+        [Tooltip("How quickly (per second) the avatar relaxes once the face is lost.")]
+        [SerializeField] float relaxSpeed = 3f;
 
         public Vrm10Instance Instance { get; private set; }
         public string Status { get; private set; } = "";
@@ -39,6 +43,10 @@ namespace VrmDroid
         readonly Dictionary<ExpressionKey, float> _weights = new Dictionary<ExpressionKey, float>();
         ExpressionKey?[] _perfectSyncKeys = Array.Empty<ExpressionKey?>();
         Vector3 _rootBasePosition;
+        float _lastFaceTime;
+        static readonly HumanBodyBones[] RelaxBones = { HumanBodyBones.Neck, HumanBodyBones.Head };
+        bool _hasSideBlinks;
+        readonly System.Collections.Generic.List<ExpressionKey> _keyScratch = new System.Collections.Generic.List<ExpressionKey>();
         DateTime _loadedWriteTime = DateTime.MinValue;
         bool _loading;
         float _nextFileCheck;
@@ -59,7 +67,28 @@ namespace VrmDroid
                 _nextFileCheck = Time.unscaledTime + 1f;
                 CheckForNewAvatar();
             }
-            if (Instance != null && receiver != null && receiver.TryGetLatest(_packet)) Apply(_packet);
+            if (Instance == null) return;
+            if (receiver != null && receiver.TryGetLatest(_packet)) Apply(_packet);
+            // Face gone (looked away, left the desk): don't freeze mid-blink; ease to neutral.
+            if (Time.unscaledTime - _lastFaceTime > lostFaceHold) Relax(Time.unscaledDeltaTime);
+        }
+
+        void Relax(float dt)
+        {
+            var k = 1f - Mathf.Exp(-relaxSpeed * dt);
+            var rig = Instance.Runtime.ControlRig;
+            foreach (var bone in RelaxBones)
+            {
+                var t = rig?.GetBoneTransform(bone);
+                if (t != null) t.localRotation = Quaternion.Slerp(t.localRotation, Quaternion.identity, k);
+            }
+            Instance.transform.localPosition = Vector3.Lerp(Instance.transform.localPosition, _rootBasePosition, k);
+            Instance.Runtime.LookAt.SetYawPitchManually(0f, 0f);
+            if (_weights.Count == 0) return;
+            _keyScratch.Clear();
+            _keyScratch.AddRange(_weights.Keys);
+            foreach (var key in _keyScratch) _weights[key] *= 1f - k;
+            Instance.Runtime.Expression.SetWeightsNonAlloc(_weights);
         }
 
         void CheckForNewAvatar()
@@ -119,6 +148,14 @@ namespace VrmDroid
             instance.LookAtTargetType = VRM10ObjectLookAt.LookAtTargetTypes.YawPitchValue;
             ApplyRestPose(instance);
 
+            _weights.Clear();
+            _lastFaceTime = Time.unscaledTime;
+            _hasSideBlinks = false;
+            foreach (var key in instance.Runtime.Expression.ExpressionKeys)
+            {
+                if (key.Preset == ExpressionPreset.blinkLeft || key.Preset == ExpressionPreset.blinkRight) _hasSideBlinks = true;
+            }
+
             // Map ARKit names to custom expressions, case-insensitively ("EyeBlinkLeft", "eyeBlinkLeft", ...).
             var custom = new Dictionary<string, ExpressionKey>(StringComparer.OrdinalIgnoreCase);
             foreach (var key in instance.Runtime.Expression.ExpressionKeys)
@@ -162,7 +199,8 @@ namespace VrmDroid
             var runtime = Instance.Runtime;
             var rig = runtime.ControlRig;
 
-            if (p[TrackingPacket.Detected] < 0.5f) return; // hold last pose while the face is lost
+            if (p[TrackingPacket.Detected] < 0.5f) return; // Update() relaxes after a short hold
+            _lastFaceTime = Time.unscaledTime;
 
             var head = new Quaternion(
                 p[TrackingPacket.HeadRotation], p[TrackingPacket.HeadRotation + 1],
@@ -205,8 +243,18 @@ namespace VrmDroid
                 SetPreset(ExpressionKey.Ou, p, TrackingPacket.Preset.Ou);
                 SetPreset(ExpressionKey.Ee, p, TrackingPacket.Preset.Ee);
                 SetPreset(ExpressionKey.Oh, p, TrackingPacket.Preset.Oh);
-                SetPreset(ExpressionKey.BlinkLeft, p, TrackingPacket.Preset.BlinkLeft);
-                SetPreset(ExpressionKey.BlinkRight, p, TrackingPacket.Preset.BlinkRight);
+                if (_hasSideBlinks)
+                {
+                    SetPreset(ExpressionKey.BlinkLeft, p, TrackingPacket.Preset.BlinkLeft);
+                    SetPreset(ExpressionKey.BlinkRight, p, TrackingPacket.Preset.BlinkRight);
+                }
+                else
+                {
+                    // Some models only define the combined "blink".
+                    _weights[ExpressionKey.Blink] = 0.5f * (
+                        p[TrackingPacket.Presets + (int)TrackingPacket.Preset.BlinkLeft] +
+                        p[TrackingPacket.Presets + (int)TrackingPacket.Preset.BlinkRight]);
+                }
                 if (applyEmotions)
                 {
                     SetPreset(ExpressionKey.Happy, p, TrackingPacket.Preset.Happy);

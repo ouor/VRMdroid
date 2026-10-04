@@ -3,7 +3,7 @@ package com.ouor.vrmdroid.output
 import android.os.SystemClock
 import com.ouor.vrmdroid.processing.TrackingResult
 import com.ouor.vrmdroid.processing.VrmPresets
-import com.ouor.vrmdroid.settings.AppSettings
+import com.ouor.vrmdroid.settings.TrackingConfig
 import com.ouor.vrmdroid.settings.OutputProtocol
 import com.ouor.vrmdroid.tracking.Arkit
 import java.net.DatagramPacket
@@ -32,7 +32,7 @@ class VmcSender(private val host: String, private val port: Int) : TrackingSende
     private val decoded = StringBuilder(1024)
     private var frameBytes = 0
 
-    override fun send(result: TrackingResult, settings: AppSettings) {
+    override fun send(result: TrackingResult, config: TrackingConfig) {
         val avatar = result.avatar
         decoded.setLength(0)
         frameBytes = 0
@@ -42,8 +42,8 @@ class VmcSender(private val host: String, private val port: Int) : TrackingSende
 
         // Head translation moves the whole avatar via the root transform (VSeeFace applies it
         // unless it tracks the lower body itself). Offset is relative to the calibrated pose.
-        if (settings.vmcSendPosition) {
-            val k = settings.vmcPositionScale / 100f
+        if (config.vmcSendPosition) {
+            val k = config.vmcPositionScale / 100f
             val p = avatar.headPosition
             osc.message("/VMC/Ext/Root/Pos").s("root")
                 .f(p[0] * k).f(p[1] * k).f(p[2] * k)
@@ -65,19 +65,21 @@ class VmcSender(private val host: String, private val port: Int) : TrackingSende
         flush()
 
         osc.beginBundle()
-        if (settings.vmcSendVrmPresets) {
+        if (config.vmcSendVrmPresets) {
             VrmPresets.compute(avatar.blendshapes, presets)
             for (p in VrmPresets.Preset.entries) {
-                if (!settings.vmcSendEmotions && p in VrmPresets.EMOTIONS) continue
+                if (!config.vmcSendEmotions && p in VrmPresets.EMOTIONS) continue
                 blend(p.vrm0, presets[p.ordinal])
             }
         }
-        if (settings.vmcSendPerfectSync) {
+        if (config.vmcSendPerfectSync) {
             for (shape in Arkit.entries) blend(shape.perfectSyncName, avatar.blendshapes[shape.ordinal])
         }
         osc.message("/VMC/Ext/Blend/Apply").end()
         flush()
-        SentDataMonitor.record(OutputProtocol.VMC, "$host:$port", decoded.toString(), result, frameBytes)
+        if (SentDataMonitor.enabled) {
+            SentDataMonitor.record(OutputProtocol.VMC, "$host:$port", decoded.toString(), result, frameBytes)
+        }
     }
 
     private fun bone(name: String, q: FloatArray) {
