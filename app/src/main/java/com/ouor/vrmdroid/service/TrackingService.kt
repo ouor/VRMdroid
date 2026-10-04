@@ -15,6 +15,8 @@ import android.hardware.camera2.CaptureRequest
 import android.hardware.display.DisplayManager
 import android.net.wifi.WifiManager
 import android.os.BatteryManager
+import android.os.Handler
+import android.os.Looper
 import android.os.PowerManager
 import android.os.SystemClock
 import android.os.Trace
@@ -26,6 +28,7 @@ import androidx.camera.camera2.interop.Camera2Interop
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.CameraState
 import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.ImageProxy
 import androidx.camera.core.resolutionselector.ResolutionSelector
 import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.lifecycle.ProcessCameraProvider
@@ -50,6 +53,7 @@ import com.ouor.vrmdroid.tracking.FaceTrackerFactory
 import com.ouor.vrmdroid.tracking.FrameConverter
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.launch
 
 /**
@@ -69,6 +73,14 @@ class TrackingService : LifecycleService() {
     @Volatile private var tracker: FaceTracker? = null
     private var analysis: ImageAnalysis? = null
     private val converter = FrameConverter()
+    /**
+     * The camera frame being tracked, held open until the tracker is done with it. While it is
+     * open CameraX keeps only the newest frame waiting and hands it over the moment this one is
+     * closed, so the tracker starts the next frame right away instead of waiting up to a frame
+     * interval for the camera, and frames that would be dropped are never converted.
+     */
+    private val inFlight = AtomicReference<ImageProxy?>(null)
+    private val mainHandler = Handler(Looper.getMainLooper())
     private var started = false
     private var wifiLock: WifiManager.WifiLock? = null
     private val perf = PerfStats(SystemClock::uptimeMillis)
@@ -164,6 +176,8 @@ class TrackingService : LifecycleService() {
             )
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
             .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
+            // Upright frames straight from CameraX's native YUV conversion (see FrameConverter).
+            .setOutputImageRotationEnabled(true)
         // Auto exposure otherwise stretches frames in dim rooms and tracking drops to ~15 fps.
         // A steady frame rate matters more to tracking than a brighter image.
         frontCameraFpsRange()?.let {
@@ -172,20 +186,7 @@ class TrackingService : LifecycleService() {
         val analysis = builder.build()
         getSystemService(DisplayManager::class.java).getDisplay(Display.DEFAULT_DISPLAY)?.let { analysis.targetRotation = it.rotation }
         this.analysis = analysis
-        analysis.setAnalyzer(analysisExecutor) { image ->
-            image.use {
-                val t = tracker
-                // Skip conversion entirely when the tracker would drop the frame anyway.
-                if (t == null || !t.isReady) return@use
-                val start = SystemClock.elapsedRealtimeNanos()
-                Trace.beginSection("vrm.convert")
-                val bitmap = try { converter.convert(it) } finally { Trace.endSection() }
-                perf.onConvert((SystemClock.elapsedRealtimeNanos() - start) / 1e6f)
-                // Sensor timestamp (ns) rather than "now", so queueing jitter stays out of the
-                // filters' time steps.
-                t.submit(bitmap, it.imageInfo.timestamp / 1_000_000)
-            }
-        }
+        analysis.setAnalyzer(analysisExecutor, ::track)
         provider.unbindAll()
         val camera = provider.bindToLifecycle(this, CameraSelector.DEFAULT_FRONT_CAMERA, analysis)
         // Errors after binding (another app grabbed the camera, device policy, …) only show up
@@ -200,13 +201,48 @@ class TrackingService : LifecycleService() {
         }
     }
 
+    /** Runs on [analysisExecutor] for each camera frame CameraX hands over. */
+    private fun track(image: ImageProxy) {
+        val t = tracker
+        if (t == null || stopped) { image.close(); return }
+        // CameraX delivers a frame only after the previous one is closed, so this is normally null.
+        inFlight.getAndSet(image)?.close()
+        // If the tracker never answers (e.g. GPU context lost), release the frame so the camera
+        // keeps flowing.
+        mainHandler.postDelayed({
+            if (inFlight.compareAndSet(image, null)) {
+                Log.w(TAG, "No result for ${STALL_MS}ms; moving on")
+                image.close()
+            }
+        }, STALL_MS)
+        try {
+            val start = SystemClock.elapsedRealtimeNanos()
+            Trace.beginSection("vrm.convert")
+            val pixels = try { converter.pixels(image) } finally { Trace.endSection() }
+            perf.onConvert((SystemClock.elapsedRealtimeNanos() - start) / 1e6f)
+            // Sensor timestamp (ns) rather than "now", so queueing jitter stays out of the
+            // filters' time steps.
+            t.submit(pixels, image.width, image.height, image.imageInfo.timestamp / 1_000_000)
+        } catch (e: Exception) {
+            Log.e(TAG, "frame submit failed", e)
+            releaseFrame()
+        }
+    }
+
+    /** Closes the frame being tracked, which lets CameraX deliver the newest one. */
+    private fun releaseFrame() {
+        inFlight.getAndSet(null)?.close()
+    }
+
     /** Runs on [analysisExecutor]. */
     private fun recreateTracker() {
         tracker?.close()
         tracker = null
+        releaseFrame() // the old tracker will never finish it
         try {
             val t = FaceTrackerFactory.create(this, settings)
             // Ignore late results from a tracker that has since been replaced.
+            t.frameDone = { if (t === tracker) releaseFrame() }
             t.listener = { frame -> if (t === tracker) onFrame(frame) }
             tracker = t
             TrackingHub.updateStatus { it.copy(trackerName = t.name) }
@@ -325,7 +361,7 @@ class TrackingService : LifecycleService() {
         settings.prefs.unregisterOnSharedPreferenceChangeListener(prefsListener)
         cameraProvider?.unbindAll()
         cameraProvider = null
-        analysisExecutor.execute { tracker?.close(); tracker = null }
+        analysisExecutor.execute { tracker?.close(); tracker = null; releaseFrame() }
         analysisExecutor.shutdown()
         networkExecutor.shutdown()
         TrackingHub.publish(null)
@@ -341,6 +377,7 @@ class TrackingService : LifecycleService() {
         private const val TARGET_FPS = 30
         private const val PERF_TAG = "VrmPerf"
         private const val MAX_FRAME_AGE_MS = 2_000L
+        private const val STALL_MS = 1_000L
 
         fun start(context: Context) {
             ContextCompat.startForegroundService(context, Intent(context, TrackingService::class.java))

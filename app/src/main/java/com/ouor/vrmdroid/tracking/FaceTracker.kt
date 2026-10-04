@@ -1,6 +1,6 @@
 package com.ouor.vrmdroid.tracking
 
-import android.graphics.Bitmap
+import java.nio.ByteBuffer
 
 /**
  * A face tracking backend. Implementations receive upright (rotation-corrected) camera frames
@@ -12,18 +12,19 @@ import android.graphics.Bitmap
 interface FaceTracker : AutoCloseable {
     var listener: ((FaceFrame) -> Unit)?
 
+    /**
+     * Called once per submitted frame when the tracker is done with it, whether or not it produced
+     * a result, before [listener] gets that result. The caller feeds the next frame from here, so
+     * the tracker never sits idle waiting for the camera.
+     */
+    var frameDone: (() -> Unit)?
+
     /** Human-readable backend name for the status line. */
     val name: String
 
     /**
-     * True when a new frame would be accepted. Callers check this before converting a camera
-     * image, so frames that would be dropped anyway cost nothing.
+     * Submits an upright, unmirrored, tightly packed RGBA frame, one at a time: the next submit
+     * waits for [frameDone]. [pixels] is only read during this call.
      */
-    val isReady: Boolean
-
-    /**
-     * Submits an upright, unmirrored frame. The tracker may read [bitmap] until its result is
-     * delivered, so the caller must not overwrite it before then (see [isReady]).
-     */
-    fun submit(bitmap: Bitmap, timestampMs: Long)
+    fun submit(pixels: ByteBuffer, width: Int, height: Int, timestampMs: Long)
 }
