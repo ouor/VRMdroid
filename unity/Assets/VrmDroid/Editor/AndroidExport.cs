@@ -53,7 +53,10 @@ namespace VrmDroid.Editor
             PlayerSettings.defaultInterfaceOrientation = UIOrientation.AutoRotation;
             PlayerSettings.Android.requestedVisibleInsets = AndroidWindowInsetsType.NavigationBars;
             PlayerSettings.runInBackground = true;
+            // Even frame pacing, and lets the panel drop from 120 Hz to the rate we render at.
+            PlayerSettings.Android.optimizedFramePacing = true;
 
+            TrimRuntimeCost();
             IncludeRuntimeShaders();
             AddOutlineFeatureToRenderers();
             AssetDatabase.SaveAssets();
@@ -92,6 +95,33 @@ namespace VrmDroid.Editor
             {
                 Debug.LogException(e);
                 EditorApplication.Exit(1);
+            }
+        }
+
+        /// <summary>
+        /// The player shares the phone with the camera and face tracking, so it skips everything the
+        /// preview doesn't show: sound, physics (no rigidbodies; spring bones run their own solver),
+        /// shadows and per-frame volume updates (post-processing is off).
+        /// </summary>
+        static void TrimRuntimeCost()
+        {
+            var audio = new SerializedObject(AssetDatabase.LoadAssetAtPath<UnityEngine.Object>("ProjectSettings/AudioManager.asset"));
+            audio.FindProperty("m_DisableAudio").boolValue = true;
+            audio.ApplyModifiedPropertiesWithoutUndo();
+
+            Physics.simulationMode = SimulationMode.Script;
+            Physics2D.simulationMode = SimulationMode2D.Script;
+
+            foreach (var guid in AssetDatabase.FindAssets("t:UniversalRenderPipelineAsset"))
+            {
+                var path = AssetDatabase.GUIDToAssetPath(guid);
+                if (!path.StartsWith("Assets/")) continue;
+                var so = new SerializedObject(AssetDatabase.LoadAssetAtPath<UniversalRenderPipelineAsset>(path));
+                so.FindProperty("m_MainLightShadowsSupported").boolValue = false;
+                so.FindProperty("m_AdditionalLightShadowsSupported").boolValue = false;
+                // 1 = via scripting: volumes are only evaluated when asked to, which is never.
+                so.FindProperty("m_VolumeFrameworkUpdateMode").intValue = 1;
+                so.ApplyModifiedPropertiesWithoutUndo();
             }
         }
 
