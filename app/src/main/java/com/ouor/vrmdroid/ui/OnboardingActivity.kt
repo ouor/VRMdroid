@@ -45,6 +45,8 @@ class OnboardingActivity : AppCompatActivity() {
     private lateinit var primary: MaterialButton
     private lateinit var secondary: MaterialButton
     private var step = Step.WELCOME
+    /** Steps actually shown; the camera step is left out when permission was already given. */
+    private lateinit var steps: List<Step>
     private val density by lazy { resources.displayMetrics.density }
     private fun dp(v: Int) = (v * density).toInt()
 
@@ -52,7 +54,7 @@ class OnboardingActivity : AppCompatActivity() {
         ActivityResultContracts.RequestMultiplePermissions()
     ) { granted ->
         if (granted[Manifest.permission.CAMERA] == true) go(Step.AVATAR)
-        else Toast.makeText(this, R.string.camera_permission_needed, Toast.LENGTH_LONG).show()
+        else CameraPermission.onDenied(this)
     }
 
     private val pickVrm = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -63,7 +65,7 @@ class OnboardingActivity : AppCompatActivity() {
                 Toast.makeText(this@OnboardingActivity, getString(R.string.vrm_loaded, it.substringBeforeLast('.')), Toast.LENGTH_SHORT).show()
                 go(Step.WHERE)
             }.onFailure {
-                Toast.makeText(this@OnboardingActivity, getString(R.string.vrm_load_failed, it.message), Toast.LENGTH_LONG).show()
+                Toast.makeText(this@OnboardingActivity, getString(R.string.vrm_load_failed, it.message ?: getString(R.string.vrm_load_failed_generic)), Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -105,23 +107,34 @@ class OnboardingActivity : AppCompatActivity() {
         root.addView(buttons)
         setContentView(root)
         ViewCompat.setOnApplyWindowInsetsListener(root) { v, insets ->
-            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.ime())
             v.setPadding(0, bars.top, 0, bars.bottom)
             insets
         }
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                if (step.ordinal == 0) finish() else go(Step.entries[step.ordinal - 1])
+                val index = steps.indexOf(step)
+                if (index <= 0) finish() else go(steps[index - 1])
             }
         })
-        go(Step.WELCOME)
+        steps = Step.entries.filter { it != Step.CAMERA || !hasCamera() }
+        val restored = savedInstanceState?.getString(STATE_STEP)?.let { name -> Step.entries.firstOrNull { it.name == name } }
+        go(restored ?: Step.WELCOME)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putString(STATE_STEP, step.name)
+    }
+
+    private companion object {
+        const val STATE_STEP = "step"
     }
 
     private fun go(next: Step) {
-        // Skip the camera step when permission was already given.
-        step = if (next == Step.CAMERA && hasCamera()) Step.AVATAR else next
+        step = if (next in steps) next else steps[(steps.indexOfFirst { it.ordinal > next.ordinal }).coerceAtLeast(0)]
         body.removeAllViews()
-        progress.text = "${step.ordinal + 1} / ${Step.entries.size}"
+        progress.text = "${steps.indexOf(step) + 1} / ${steps.size}"
         secondary.visibility = View.GONE
         when (step) {
             Step.WELCOME -> {
@@ -138,8 +151,15 @@ class OnboardingActivity : AppCompatActivity() {
                 body.addView(display(getString(R.string.ob_camera_title)), spaced(24))
                 body.addView(caption(getString(R.string.ob_camera_body)), spaced(12))
                 primary(getString(R.string.ob_camera_cta)) {
-                    requestPermissions.launch(arrayOf(Manifest.permission.CAMERA, Manifest.permission.POST_NOTIFICATIONS))
+                    if (CameraPermission.isPermanentlyDenied(this)) {
+                        CameraPermission.showSettingsDialog(this)
+                    } else {
+                        CameraPermission.markAsked(this)
+                        requestPermissions.launch(arrayOf(Manifest.permission.CAMERA, Manifest.permission.POST_NOTIFICATIONS))
+                    }
                 }
+                // Never a dead end: the rest of setup works without the camera for now.
+                secondary(getString(R.string.ob_later)) { go(Step.AVATAR) }
             }
             Step.AVATAR -> {
                 hero(R.drawable.ic_folder)
@@ -147,7 +167,7 @@ class OnboardingActivity : AppCompatActivity() {
                 body.addView(caption(getString(R.string.ob_avatar_body)), spaced(12))
                 body.addView((layoutInflater.inflate(R.layout.button_text, null) as MaterialButton).apply {
                     text = getString(R.string.empty_help)
-                    setTextColor(getColor(R.color.brand))
+                    setTextColor(getColor(R.color.brand_text))
                     setOnClickListener {
                         MaterialAlertDialogBuilder(this@OnboardingActivity)
                             .setTitle(R.string.vrm_help_title)
@@ -192,7 +212,7 @@ class OnboardingActivity : AppCompatActivity() {
     private fun hasCamera() =
         ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
 
-    private fun hero(icon: Int, tint: Int = R.color.brand) {
+    private fun hero(icon: Int, tint: Int = R.color.brand_text) {
         body.addView(ImageView(this).apply {
             setImageResource(icon)
             setBackgroundResource(R.drawable.bg_icon_circle)
@@ -205,7 +225,7 @@ class OnboardingActivity : AppCompatActivity() {
         val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
         row.addView(ImageView(this).apply {
             setImageResource(icon)
-            imageTintList = ContextCompat.getColorStateList(context, R.color.brand)
+            imageTintList = ContextCompat.getColorStateList(context, R.color.brand_text)
         }, LinearLayout.LayoutParams(dp(22), dp(22)))
         row.addView(TextView(this).apply {
             setTextAppearance(R.style.Text_Vrmdroid_Body)
@@ -220,16 +240,17 @@ class OnboardingActivity : AppCompatActivity() {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setBackgroundResource(R.drawable.bg_card)
+            clipToOutline = true
             setPadding(dp(16), dp(20), dp(12), dp(20))
             isClickable = true
             isFocusable = true
-            foreground = ContextCompat.getDrawable(context, android.R.drawable.list_selector_background)
+            foreground = themeRipple(context)
             setOnClickListener { onClick() }
         }
         card.addView(ImageView(this).apply {
             setImageResource(icon)
             setBackgroundResource(R.drawable.bg_icon_circle)
-            imageTintList = ContextCompat.getColorStateList(context, R.color.brand)
+            imageTintList = ContextCompat.getColorStateList(context, R.color.brand_text)
             setPadding(dp(10), dp(10), dp(10), dp(10))
         }, LinearLayout.LayoutParams(dp(44), dp(44)))
         val labels = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(14), 0, dp(8), 0) }

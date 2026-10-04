@@ -23,7 +23,7 @@ class SparklineView @JvmOverloads constructor(
     var groupStarts: Set<Int> = emptySet()
 
     private val dp = resources.displayMetrics.density
-    private val bar = Paint().apply { color = ContextCompat.getColor(context, R.color.brand) }
+    private val bar = Paint().apply { color = ContextCompat.getColor(context, R.color.brand_text) }
     private val track = Paint().apply { color = Color.argb(40, 255, 255, 255) }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {

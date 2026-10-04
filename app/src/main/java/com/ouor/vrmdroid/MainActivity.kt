@@ -42,6 +42,7 @@ import com.ouor.vrmdroid.settings.AppSettings
 import com.ouor.vrmdroid.settings.SettingsActivity
 import com.ouor.vrmdroid.ui.AdjustSheet
 import com.ouor.vrmdroid.ui.CalibrationGuideView
+import com.ouor.vrmdroid.ui.CameraPermission
 import com.ouor.vrmdroid.ui.DataConsoleView
 import com.ouor.vrmdroid.ui.FaceOverlayView
 import com.ouor.vrmdroid.ui.IdleDimmer
@@ -81,7 +82,7 @@ class MainActivity : AppCompatActivity(), UnityActivitySupport {
         ActivityResultContracts.RequestMultiplePermissions()
     ) { granted ->
         if (granted[Manifest.permission.CAMERA] == true) TrackingService.start(this)
-        else Toast.makeText(this, R.string.camera_permission_needed, Toast.LENGTH_LONG).show()
+        else CameraPermission.onDenied(this)
     }
 
     private val pickVrm = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -89,7 +90,7 @@ class MainActivity : AppCompatActivity(), UnityActivitySupport {
         lifecycleScope.launch {
             val message = withContext(Dispatchers.IO) {
                 runCatching { AvatarStore.import(this@MainActivity, uri) }
-                    .fold({ getString(R.string.vrm_loaded, it.substringBeforeLast('.')) }, { getString(R.string.vrm_load_failed, it.message) })
+                    .fold({ getString(R.string.vrm_loaded, it.substringBeforeLast('.')) }, { getString(R.string.vrm_load_failed, it.message ?: getString(R.string.vrm_load_failed_generic)) })
             }
             Toast.makeText(this@MainActivity, message, Toast.LENGTH_SHORT).show()
             updateEmptyState()
@@ -247,7 +248,14 @@ class MainActivity : AppCompatActivity(), UnityActivitySupport {
     private fun startTracking() {
         val needed = listOf(Manifest.permission.CAMERA, Manifest.permission.POST_NOTIFICATIONS)
             .filter { ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED }
-        if (needed.isEmpty()) TrackingService.start(this) else requestPermissions.launch(needed.toTypedArray())
+        when {
+            needed.isEmpty() -> TrackingService.start(this)
+            CameraPermission.isPermanentlyDenied(this) -> CameraPermission.showSettingsDialog(this)
+            else -> {
+                CameraPermission.markAsked(this)
+                requestPermissions.launch(needed.toTypedArray())
+            }
+        }
     }
 
     private fun render(s: TrackingStatus) {
@@ -266,6 +274,7 @@ class MainActivity : AppCompatActivity(), UnityActivitySupport {
         }
         // Calibrating only makes sense while the camera is running.
         calibrateAction.alpha = if (s.running) 1f else 0.4f
+        ViewCompat.setStateDescription(calibrateAction, if (s.running) null else getString(R.string.calib_need_start))
     }
 
     private fun updateEmptyState() {
@@ -280,7 +289,10 @@ class MainActivity : AppCompatActivity(), UnityActivitySupport {
     private fun setChromeVisible(visible: Boolean) {
         chrome.visibility = if (visible) View.VISIBLE else View.GONE
         restoreUi.visibility = if (visible) View.GONE else View.VISIBLE
-        if (!visible) Toast.makeText(this, R.string.hide_ui_hint, Toast.LENGTH_SHORT).show()
+        if (!visible) {
+            Toast.makeText(this, R.string.hide_ui_hint, Toast.LENGTH_SHORT).show()
+            restoreUi.announceForAccessibility(getString(R.string.hide_ui_hint))
+        }
     }
 
     /**
@@ -351,7 +363,11 @@ class MainActivity : AppCompatActivity(), UnityActivitySupport {
         })
         dialog.setContentView(content)
         dialog.show()
-        lifecycleScope.launch { delay(5000); if (dialog.isShowing) dialog.dismiss() }
+        // No time limit for screen-reader users (WCAG 2.2.1).
+        val a11y = getSystemService(android.view.accessibility.AccessibilityManager::class.java)
+        if (a11y?.isTouchExplorationEnabled != true) {
+            lifecycleScope.launch { delay(5000); if (dialog.isShowing) dialog.dismiss() }
+        }
     }
 
     private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()

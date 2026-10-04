@@ -91,7 +91,7 @@ class ConnectActivity : AppCompatActivity() {
         })
         setContentView(root)
         ViewCompat.setOnApplyWindowInsetsListener(root) { v, insets ->
-            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.ime())
             v.setPadding(0, bars.top, 0, bars.bottom)
             insets
         }
@@ -99,7 +99,13 @@ class ConnectActivity : AppCompatActivity() {
         onBackPressedDispatcher.addCallback(this, object : androidx.activity.OnBackPressedCallback(true) {
             override fun handleOnBackPressed() = onBack()
         })
-        showChooser()
+        val restored = savedInstanceState?.getString(STATE_PROGRAM)?.let { name -> Program.entries.firstOrNull { it.name == name } }
+        if (restored != null) showGuide(restored) else showChooser()
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        program?.let { outState.putString(STATE_PROGRAM, it.name) }
     }
 
     private fun onBack() {
@@ -132,16 +138,17 @@ class ConnectActivity : AppCompatActivity() {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setBackgroundResource(R.drawable.bg_card)
+            clipToOutline = true
             setPadding(dp(16), dp(16), dp(12), dp(16))
             isClickable = true
             isFocusable = true
-            foreground = ContextCompat.getDrawable(context, android.R.drawable.list_selector_background)
+            foreground = themeRipple(context)
             setOnClickListener { onClick() }
         }
         card.addView(ImageView(this).apply {
             setImageResource(icon)
             setBackgroundResource(R.drawable.bg_icon_circle)
-            imageTintList = ContextCompat.getColorStateList(context, R.color.brand)
+            imageTintList = ContextCompat.getColorStateList(context, R.color.brand_text)
             setPadding(dp(10), dp(10), dp(10), dp(10))
         }, LinearLayout.LayoutParams(dp(44), dp(44)))
         val labels = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(14), 0, dp(8), 0) }
@@ -191,7 +198,11 @@ class ConnectActivity : AppCompatActivity() {
         }
         statusCard.addView(spinner, LinearLayout.LayoutParams(dp(24), dp(24)))
         statusCard.addView(check, LinearLayout.LayoutParams(dp(24), dp(24)))
-        val statusText = TextView(this).apply { setTextAppearance(R.style.Text_Vrmdroid_Body); setPadding(dp(12), 0, 0, 0) }
+        val statusText = TextView(this).apply {
+            setTextAppearance(R.style.Text_Vrmdroid_Body)
+            setPadding(dp(12), 0, 0, 0)
+            accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
+        }
         statusCard.addView(statusText, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         body.addView(statusCard, spaced(20))
         body.addView(caption(getString(R.string.connect_trouble)), spaced(12))
@@ -205,7 +216,8 @@ class ConnectActivity : AppCompatActivity() {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 TrackingHub.status.collect { s ->
                     val connected = s.pcLink == PcLink.CONNECTED
-                    spinner.visibility = if (connected) View.GONE else View.VISIBLE
+                    // Only spin while something is actually happening.
+                    spinner.visibility = if (connected || !s.running) View.GONE else View.VISIBLE
                     check.visibility = if (connected) View.VISIBLE else View.GONE
                     statusText.text = when {
                         !s.running -> getString(R.string.connect_need_start)
@@ -290,7 +302,7 @@ class ConnectActivity : AppCompatActivity() {
         row.addView(TextView(this).apply {
             this.text = n.toString()
             gravity = Gravity.CENTER
-            setTextColor(getColor(R.color.brand))
+            setTextColor(getColor(R.color.brand_text))
             paint.isFakeBoldText = true
             setBackgroundResource(R.drawable.bg_icon_circle)
         }, LinearLayout.LayoutParams(dp(28), dp(28)))
@@ -321,6 +333,7 @@ class ConnectActivity : AppCompatActivity() {
 
     companion object {
         fun intent(context: Context) = Intent(context, ConnectActivity::class.java)
+        private const val STATE_PROGRAM = "program"
 
         private val IPV4 = Regex("""^((25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(25[0-5]|2[0-4]\d|1?\d?\d)$""")
         private val HOSTNAME = Regex("""^[A-Za-z0-9]([A-Za-z0-9-]{0,62})(\.[A-Za-z0-9]([A-Za-z0-9-]{0,62}))*$""")

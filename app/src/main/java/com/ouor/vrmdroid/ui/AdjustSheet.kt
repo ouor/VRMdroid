@@ -64,7 +64,7 @@ object AdjustSheet {
                 context.getString(R.string.adjust_face_dots_desc), false, onFacePreviewChanged)
 
             content.addView((android.view.LayoutInflater.from(context).inflate(R.layout.button_text, null) as MaterialButton).apply {
-                text = context.getString(R.string.reset_defaults)
+                text = context.getString(R.string.reset_expression)
                 setTextColor(context.getColor(R.color.text_secondary))
                 setOnClickListener {
                     settings.resetExpression()
