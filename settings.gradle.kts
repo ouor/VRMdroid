@@ -28,14 +28,10 @@ rootProject.name = "vrmdroid"
 include(":app")
 
 // The Unity player module is produced by exporting the project in unity/ (VRMDroid > Export
-// Android Library, see README.md). The host app builds and runs without it; the avatar preview
-// button is disabled in that case.
+// Android Library, see README.md). Without it only the app's "stub" flavor (no avatar) exists.
 val unityLibraryDir = file("unity/Builds/AndroidExport/unityLibrary")
-// -Pvrmdroid.unity=false builds with the stub even when an export exists (e.g. to check that
-// the stub still compiles).
-val unityEnabled = providers.gradleProperty("vrmdroid.unity").orNull != "false"
 val unityExported = unityLibraryDir.resolve("build.gradle").exists() || unityLibraryDir.resolve("build.gradle.kts").exists()
-if (unityEnabled && unityExported) {
+if (unityExported) {
     check(unityLibraryDir.resolve("../gradle.properties").exists()) {
         "Incomplete Unity export at $unityLibraryDir (gradle.properties missing); re-run VRMDroid > Export Android Library."
     }

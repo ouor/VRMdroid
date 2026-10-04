@@ -16,9 +16,11 @@ import androidx.core.view.WindowInsetsCompat
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.ouor.vrmdroid.R
+import androidx.lifecycle.ViewModelProvider
 import com.ouor.vrmdroid.ui.ConnectActivity
 import com.ouor.vrmdroid.ui.Rows
 import com.ouor.vrmdroid.ui.Rows.Option
+import com.ouor.vrmdroid.ui.StepViewModel
 
 /**
  * Settings grouped by what the user is trying to do. Everyday items come first in plain words;
@@ -29,7 +31,11 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var settings: AppSettings
     private lateinit var rows: Rows
     private lateinit var body: LinearLayout
-    private var advancedOpen = false
+    private val state by lazy { ViewModelProvider(this)[StepViewModel::class.java] }
+    /** Whether the "고급" section is expanded; kept across rotation. */
+    private var advancedOpen: Boolean
+        get() = state.step == STEP_ADVANCED
+        set(value) { state.step = if (value) STEP_ADVANCED else null }
     private val density by lazy { resources.displayMetrics.density }
     private fun dp(v: Int) = (v * density).toInt()
 
@@ -38,7 +44,6 @@ class SettingsActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         settings = AppSettings(this)
         rows = Rows(this, settings.prefs)
-        advancedOpen = savedInstanceState?.getBoolean(STATE_ADVANCED) ?: false
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -188,13 +193,9 @@ class SettingsActivity : AppCompatActivity() {
         rows.switch(card, AppSettings.KEY_USE_GPU, getString(R.string.set_gpu), getString(R.string.set_gpu_desc), true)
     }
 
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        outState.putBoolean(STATE_ADVANCED, advancedOpen)
-    }
 
     private companion object {
-        const val STATE_ADVANCED = "advanced_open"
+        const val STEP_ADVANCED = "advanced"
     }
 
     private fun confirmReset() {

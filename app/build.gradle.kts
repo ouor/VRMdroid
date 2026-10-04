@@ -6,8 +6,8 @@ plugins {
     id("de.undercouch.download") version "5.6.0"
 }
 
-// settings.gradle.kts includes :unityLibrary when the Unity export exists (and
-// -Pvrmdroid.unity=false isn't set); otherwise the app builds with the stub avatar host.
+// settings.gradle.kts includes :unityLibrary when the Unity export exists. The "unity" flavor
+// (real avatar) is only defined then; the "stub" flavor (landmark view, no Unity) always is.
 val hasUnity = rootProject.findProject(":unityLibrary") != null
 
 // MediaPipe face landmarker model (Apache 2.0). Pinned to a version and checksum so builds are
@@ -53,13 +53,27 @@ android {
     buildFeatures {
         buildConfig = true
     }
+    flavorDimensions += "avatar"
+    productFlavors {
+        create("stub") {
+            dimension = "avatar"
+            // Installs next to the full app.
+            applicationIdSuffix = ".stub"
+            versionNameSuffix = "-stub"
+        }
+        if (hasUnity) {
+            create("unity") {
+                dimension = "avatar"
+                isDefault = true
+            }
+        }
+    }
     androidResources {
         noCompress += "task"
     }
     sourceSets {
         getByName("main") {
-            // Real Unity embedding when the exported unityLibrary is present, a stub otherwise.
-            kotlin.srcDir(if (hasUnity) "src/unity/java" else "src/nounity/java")
+            // Flavor code lives in src/unity/java and src/stub/java (the UnityHost variants).
             // Plain File: AGP rejects Providers in the source-set API.
             assets.srcDir(generatedAssets.get().asFile)
         }
@@ -105,9 +119,9 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.kotlinx.coroutines.android)
     if (hasUnity) {
-        implementation(project(":unityLibrary"))
+        "unityImplementation"(project(":unityLibrary"))
         // unityLibrary keeps its player classes as an `implementation` jar; compile against it here.
-        compileOnly(files(rootProject.project(":unityLibrary").projectDir.resolve("libs/unity-classes.jar")))
+        "unityCompileOnly"(files(rootProject.project(":unityLibrary").projectDir.resolve("libs/unity-classes.jar")))
     }
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.espresso.core)

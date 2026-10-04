@@ -24,6 +24,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.button.MaterialButton
@@ -48,6 +49,8 @@ class ConnectActivity : AppCompatActivity() {
     private lateinit var primary: MaterialButton
     private lateinit var titleView: TextView
     private var program: Program? = null
+        set(value) { field = value; state.step = value?.name }
+    private val state by lazy { ViewModelProvider(this)[StepViewModel::class.java] }
     private var statusJob: Job? = null
     private var pcAddressInput: EditText? = null
 
@@ -97,13 +100,8 @@ class ConnectActivity : AppCompatActivity() {
         onBackPressedDispatcher.addCallback(this, object : androidx.activity.OnBackPressedCallback(true) {
             override fun handleOnBackPressed() = onBack()
         })
-        val restored = savedInstanceState?.getString(STATE_PROGRAM)?.let { name -> Program.entries.firstOrNull { it.name == name } }
+        val restored = state.step?.let { name -> Program.entries.firstOrNull { it.name == name } }
         if (restored != null) showGuide(restored) else showChooser()
-    }
-
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        program?.let { outState.putString(STATE_PROGRAM, it.name) }
     }
 
     private fun onBack() {
@@ -303,7 +301,6 @@ class ConnectActivity : AppCompatActivity() {
 
     companion object {
         fun intent(context: Context) = Intent(context, ConnectActivity::class.java)
-        private const val STATE_PROGRAM = "program"
 
         private val IPV4 = Regex("""^((25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(25[0-5]|2[0-4]\d|1?\d?\d)$""")
         private val HOSTNAME = Regex("""^[A-Za-z0-9]([A-Za-z0-9-]{0,62})(\.[A-Za-z0-9]([A-Za-z0-9-]{0,62}))*$""")
