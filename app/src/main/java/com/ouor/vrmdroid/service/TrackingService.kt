@@ -83,6 +83,7 @@ class TrackingService : LifecycleService() {
     /** Touched only on [networkExecutor]. */
     private var consecutiveSendFailures = 0
     private var lastSendFailureLog = 0L
+    private var lastSenderRetry = 0L
 
     /** Touched only on [networkExecutor]. */
     private var senders: List<TrackingSender> = emptyList()
@@ -314,6 +315,12 @@ class TrackingService : LifecycleService() {
         if (consecutiveSendFailures == SEND_FAILURE_THRESHOLD) {
             TrackingHub.updateStatus { it.copy(error = getString(R.string.error_send_failed)) }
         }
+        // Addresses resolve once, when the sender is created. A PC name (*.local) that failed to
+        // resolve, or a network that came back, needs fresh senders to recover.
+        if (consecutiveSendFailures >= SEND_FAILURE_THRESHOLD && now - lastSenderRetry > SENDER_RETRY_MS) {
+            lastSenderRetry = now
+            recreateSenders()
+        }
     }
 
     /** Called from the iFacialMocap listener thread whenever a PC app says hello. */
@@ -419,6 +426,7 @@ class TrackingService : LifecycleService() {
         private const val ACTION_STOP = "com.ouor.vrmdroid.STOP"
         private const val SEND_FAILURE_THRESHOLD = 30
         private const val TARGET_FPS = 30
+        private const val SENDER_RETRY_MS = 5_000L
         private const val SEND_FAILURE_LOG_MS = 5000L
 
         fun start(context: Context) {

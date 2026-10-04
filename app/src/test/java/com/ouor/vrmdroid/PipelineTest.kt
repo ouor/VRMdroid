@@ -164,3 +164,23 @@ class StatusPillTest {
         assertEquals(R.string.pill_no_face, com.ouor.vrmdroid.ui.StatusText.pillRes(sending.copy(faceDetected = false)).first)
     }
 }
+
+class VrmCheckTest {
+    private fun glb(json: String): java.io.InputStream {
+        val body = json.toByteArray()
+        val buf = java.nio.ByteBuffer.allocate(20 + body.size).order(java.nio.ByteOrder.LITTLE_ENDIAN)
+        buf.putInt(0x46546C67).putInt(2).putInt(20 + body.size).putInt(body.size).putInt(0x4E4F534A).put(body)
+        return buf.array().inputStream()
+    }
+
+    @Test fun acceptsVrm0AndVrm1() {
+        assertTrue(com.ouor.vrmdroid.avatar.VrmCheck.isVrm(glb("""{"extensions":{"VRM":{"meta":{}}}}""")))
+        assertTrue(com.ouor.vrmdroid.avatar.VrmCheck.isVrm(glb("""{"extensions": {"VRMC_vrm" : {"specVersion":"1.0"}}}""")))
+    }
+
+    @Test fun rejectsPlainGltfAndOtherFiles() {
+        assertTrue(!com.ouor.vrmdroid.avatar.VrmCheck.isVrm(glb("""{"asset":{"version":"2.0"}}""")))
+        assertTrue(!com.ouor.vrmdroid.avatar.VrmCheck.isVrm(glb("""{"extensionsUsed":["VRMC_vrm_animation"]}""")))
+        assertTrue(!com.ouor.vrmdroid.avatar.VrmCheck.isVrm("PK\u0003\u0004 not a model".byteInputStream()))
+    }
+}
