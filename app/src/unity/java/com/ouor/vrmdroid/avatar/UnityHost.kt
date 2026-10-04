@@ -41,6 +41,11 @@ class UnityHost(private val activity: Activity) {
      */
     fun setLowPower(on: Boolean) = UnityPlayer.UnitySendMessage(UNITY_OBJECT, "SetLowPower", if (on) "1" else "0")
 
+    /** Caps the preview's cost: idle fps, render scale and MToon outlines (see PreviewApp.SetRenderBudget). */
+    fun setRenderBudget(maxFps: Int, renderScale: Float, outlines: Boolean) = UnityPlayer.UnitySendMessage(
+        UNITY_OBJECT, "SetRenderBudget", "$maxFps;$renderScale;${if (outlines) 1 else 0}",
+    )
+
     /** Unity terminates the process here, so only call this when the app is really closing. */
     fun onDestroy() = player.destroy()
 

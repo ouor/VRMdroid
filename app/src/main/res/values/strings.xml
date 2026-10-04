@@ -59,6 +59,8 @@
     <string name="status_pc_sending">%1$s에 전송 중이에요</string>
     <string name="status_connect_cta">PC와 연결하기</string>
     <string name="status_details">자세히</string>
+    <string name="status_thermal_warm">폰이 따뜻해서 아바타 미리보기를 조금 가볍게 그리고 있어요</string>
+    <string name="status_thermal_hot">폰이 뜨거워서 아바타 미리보기와 얼굴 인식 속도를 낮췄어요</string>
     <string name="copied">주소를 복사했어요</string>
     <string name="copy">복사</string>
 

@@ -56,7 +56,10 @@ import com.ouor.vrmdroid.ui.StatusText
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
@@ -202,6 +205,12 @@ class MainActivity : AppCompatActivity(), UnityActivitySupport {
                 launch { TrackingHub.latest.collect { if (!isDimmed) facePreview.result = it } }
                 launch { TrackingHub.pcFound.collect(::showPcFound) }
                 launch { UnityBridge.avatarState.collect(::renderAvatarState) }
+                launch {
+                    // Re-sent when the avatar (re)loads too: a message sent before the player
+                    // was up is lost.
+                    combine(TrackingHub.status.map { it.thermalLevel }.distinctUntilChanged(), UnityBridge.avatarState) { level, _ -> level }
+                        .collect { unityHost?.setRenderBudget(it.maxAvatarFps, it.renderScale, it.outlines) }
+                }
                 launch {
                     // A few refreshes per second keeps the numbers readable and cheap.
                     while (true) {

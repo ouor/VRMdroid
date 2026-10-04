@@ -34,6 +34,8 @@ data class TrackingStatus(
     val pcAddress: String = "",
     val pcLink: PcLink = PcLink.WAITING,
     val error: String? = null,
+    /** How much the phone currently holds back to stay cool (see [ThermalGovernor]). */
+    val thermalLevel: ThermalLevel = ThermalLevel.NORMAL,
 )
 
 /** In-process state shared between [TrackingService] and the UI. */

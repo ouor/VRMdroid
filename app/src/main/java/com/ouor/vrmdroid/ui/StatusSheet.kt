@@ -15,6 +15,7 @@ import androidx.lifecycle.lifecycleScope
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.button.MaterialButton
 import com.ouor.vrmdroid.R
+import com.ouor.vrmdroid.service.ThermalLevel
 import com.ouor.vrmdroid.service.TrackingHub
 import com.ouor.vrmdroid.service.TrackingStatus
 import kotlinx.coroutines.launch
@@ -115,6 +116,11 @@ object StatusSheet {
                 append(activity.getString(R.string.status_details)).append(": ")
                 if (s.running) append(s.trackerName).append(String.format(Locale.US, " · %.0f fps · %d ms", s.fps, s.inferenceMs))
                 else append(activity.getString(R.string.status_off))
+                when (s.thermalLevel) {
+                    ThermalLevel.NORMAL -> Unit
+                    ThermalLevel.WARM -> append("\n").append(activity.getString(R.string.status_thermal_warm))
+                    ThermalLevel.HOT -> append("\n").append(activity.getString(R.string.status_thermal_hot))
+                }
                 s.error?.let { append("\n").append(it) }
             }
         }
