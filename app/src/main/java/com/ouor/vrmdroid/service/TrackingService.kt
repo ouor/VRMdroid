@@ -285,7 +285,7 @@ class TrackingService : LifecycleService() {
             tracker = t
             TrackingHub.updateStatus { it.copy(trackerName = t.name) }
         } catch (e: Exception) {
-            fail("얼굴 인식을 시작하지 못했어요: ${e.message}", e)
+            fail(getString(R.string.error_tracker_start, e.message.orEmpty()), e)
         }
     }
 

@@ -1,0 +1,232 @@
+<resources>
+    <string name="app_name">VRMDroid</string>
+
+    <!-- Main screen -->
+    <string name="start">スタート</string>
+    <string name="stop">ストップ</string>
+    <string name="action_calibrate">正面リセット</string>
+    <string name="action_adjust">表情の調整</string>
+    <string name="action_avatar">アバター変更</string>
+    <string name="action_hide_ui">UIを隠す</string>
+    <string name="action_settings">設定</string>
+    <string name="hide_ui_hint">画面をタップするとメニューが戻ります</string>
+
+    <string name="empty_title">まだアバターがありません</string>
+    <string name="empty_body">VRMファイルを選んで、あなたのアバターを読み込んでください</string>
+    <string name="empty_cta">アバターを選ぶ</string>
+    <string name="empty_help">VRMファイルはどこで手に入りますか？</string>
+    <string name="vrm_help_title">VRMファイルの入手方法</string>
+    <string name="vrm_help_body">VRMはVTuberアバター用のファイルです。\n\n• VRoid Studioで自分で作れます。\n• VRoid HubやBOOTHなどで入手できます。利用規約は必ず確認してください。\n\n入手した.vrmファイルをスマホに保存してから、「アバターを選ぶ」をタップしてください。</string>
+    <string name="ok">OK</string>
+    <string name="vrm_loaded">%1$sに切り替えました</string>
+    <string name="vrm_load_failed">読み込めませんでした。%1$s</string>
+    <string name="camera_permission_needed">表情を読み取るにはカメラの権限が必要です</string>
+    <string name="camera_permission_off_title">カメラの権限がオフになっています</string>
+    <string name="camera_permission_off_body">設定 → 権限 でカメラを許可すると、すぐに使えます。</string>
+    <string name="open_settings">設定を開く</string>
+    <string name="vrm_load_failed_generic">VRMファイルかどうか確認してください</string>
+
+    <!-- Status pill -->
+    <string name="pill_off">オフ</string>
+    <string name="pill_error">問題が発生しました</string>
+    <string name="error_send_failed">PCに送信できていません。PCのアドレスとWi-Fiを確認してください。</string>
+    <string name="error_port_busy">ほかのアプリがポート%1$dを使っているため、PCからの接続を検出できません。</string>
+    <string name="error_camera_lost">カメラを使えません。ほかのアプリがカメラを使っていないか確認してください。</string>
+    <string name="pill_no_face">顔が見えません</string>
+    <string name="pill_face">トラッキング中</string>
+    <string name="pill_pc_sending">PCに送信中</string>
+    <string name="pill_pc_waiting">PCの接続待ち</string>
+
+    <!-- Calibration guide -->
+    <string name="calib_title">正面を向いて、少しだけじっとしていてください</string>
+    <string name="calib_no_face">顔が画面に映るようにスマホの位置を合わせてください</string>
+    <string name="calib_done">正面を合わせました</string>
+    <string name="calib_need_start">先に「スタート」をタップしてください</string>
+    <string name="calib_later">カメラがオンになったら「正面リセット」をタップしてください</string>
+
+    <!-- Status sheet -->
+    <string name="status_title">現在の状態</string>
+    <string name="status_tracking">トラッキング</string>
+    <string name="status_pc">PC接続</string>
+    <string name="status_phone_address">このスマホのアドレス</string>
+    <string name="status_quality_good">なめらか</string>
+    <string name="status_quality_ok">良好</string>
+    <string name="status_quality_slow">少し遅め</string>
+    <string name="status_off">オフになっています</string>
+    <string name="status_no_face">顔を探しています</string>
+    <string name="status_pc_off">送信しません（スマホのみで表示）</string>
+    <string name="status_pc_waiting">PCのソフトからの接続を待っています</string>
+    <string name="status_pc_sending">%1$sに送信中です</string>
+    <string name="status_connect_cta">PCと接続する</string>
+    <string name="status_details">詳細</string>
+    <string name="status_thermal_warm">スマホが温かくなってきたため、アバターのプレビューを少し軽くしています</string>
+    <string name="status_thermal_hot">スマホが熱くなっているため、アバターのプレビューとトラッキングの速度を下げています</string>
+    <string name="copied">アドレスをコピーしました</string>
+    <string name="copy">コピー</string>
+
+    <!-- PC found card -->
+    <string name="pc_found_title">PCが見つかりました</string>
+    <string name="pc_found_body">%1$sと接続しました。これでPCのアバターがあなたの動きについてきます。</string>
+
+    <!-- Quick adjust sheet -->
+    <string name="adjust_title">表情の調整</string>
+    <string name="adjust_caption">アバターを見ながらその場で調整できます</string>
+    <string name="adjust_blink">まばたき</string>
+    <string name="adjust_mouth">口の動き</string>
+    <string name="adjust_smooth">動きのなめらかさ</string>
+    <string name="less_sensitive">鈍く</string>
+    <string name="more_sensitive">敏感に</string>
+    <string name="faster">速く</string>
+    <string name="smoother">なめらかに</string>
+    <string name="adjust_mirror">ミラー表示</string>
+    <string name="adjust_mirror_desc">あなたが右を向くと、アバターも画面の右を向きます</string>
+    <string name="adjust_link_eyes">両目を連動させる</string>
+    <string name="adjust_link_eyes_desc">オンにするとウインクはできません。片目だけ閉じてしまうときにオンにしてください</string>
+    <string name="adjust_face_dots">顔の検出ポイントを表示</string>
+    <string name="adjust_face_dots_desc">画面の隅に小さく表示されます</string>
+    <string name="reset_defaults">初期設定に戻す</string>
+    <string name="reset_expression">表情の設定だけリセット</string>
+    <string name="reset_done">初期設定に戻しました</string>
+    <string name="reset_expression_done">表情の設定を初期状態に戻しました</string>
+
+    <!-- Connect guide -->
+    <string name="back">戻る</string>
+    <string name="cancel">キャンセル</string>
+    <string name="done">完了</string>
+    <string name="connect_title">PCと接続する</string>
+    <string name="connect_which">どのソフトで\nアバターを動かしますか？</string>
+    <string name="connect_which_desc">PCで使っている配信用アバターソフトを選んでください</string>
+    <string name="connect_vseeface">VSeeFace</string>
+    <string name="connect_vseeface_desc">いちばん多く使われているソフトです</string>
+    <string name="connect_iphone_apps">VNyan · Warudo など</string>
+    <string name="connect_iphone_apps_desc">「iPhoneトラッキング（iFacialMocap）」を受信できるソフト</string>
+    <string name="connect_vmc">VMCで受信するソフト</string>
+    <string name="connect_vmc_desc">VMagicMirrorなど「VMC受信」があるソフト</string>
+    <string name="connect_phone_only">PCなしでスマホだけで使う</string>
+    <string name="connect_steps_title">こうしてください</string>
+    <string name="connect_vsf_1">PCでVSeeFaceを起動してください</string>
+    <string name="connect_vsf_2">設定 → General settings で「iFacialMocap」の受信をオンにしてください</string>
+    <string name="connect_vsf_3">アドレス欄に下の数字をそのまま入力してください</string>
+    <string name="connect_ifm_1">PCのソフトで「iPhone / iFacialMocap」トラッキングを選んでください</string>
+    <string name="connect_ifm_2">スマホのアドレスを入力する欄に、下の数字を入力してください</string>
+    <string name="connect_vmc_1">PCのソフトで「VMC受信」をオンにして、ポートを39539に設定してください</string>
+    <string name="connect_vmc_2">下にPCのアドレスを入力してください</string>
+    <string name="connect_pc_address">PCのアドレス</string>
+    <string name="connect_pc_address_invalid">アドレスの形式を確認してください（例: 192.168.0.10）</string>
+    <string name="connect_pc_address_help">PCで「コマンド プロンプト」を開いて ipconfig と入力すると表示される「IPv4 アドレス」です</string>
+    <string name="connect_waiting">PCからの接続を待っています…</string>
+    <string name="connect_sending">PCに送信中です。PCのアバターが動いているか確認してください</string>
+    <string name="connect_need_start">メイン画面で「スタート」をタップすると接続されます</string>
+    <string name="connect_trouble">うまくいきませんか？スマホとPCが同じWi-Fiにつながっているか確認してください。</string>
+
+    <!-- Settings -->
+    <string name="set_section_pc">PC接続</string>
+    <string name="set_section_face">表情</string>
+    <string name="set_section_screen">画面</string>
+    <string name="set_section_advanced">詳細設定</string>
+    <string name="set_connect_desc">手順どおりに進めれば接続できます</string>
+    <string name="set_protocol">送信方式</string>
+    <string name="set_protocol_ifm">iPhoneトラッキング方式</string>
+    <string name="set_protocol_ifm_desc">VSeeFace · VNyan · Warudo</string>
+    <string name="set_protocol_vmc">VMC方式</string>
+    <string name="set_protocol_vmc_desc">VMC受信に対応したソフト</string>
+    <string name="set_protocol_none">送信しない</string>
+    <string name="set_protocol_none_desc">PCなしでスマホだけで表示</string>
+    <string name="set_pc_address_auto_desc">空欄にしておくと、PCが接続したときに自動で入力されます</string>
+    <string name="set_pc_auto">自動で検出</string>
+    <string name="set_pc_unset">入力してください</string>
+    <string name="set_auto_detect">PCを自動で検出</string>
+    <string name="set_auto_detect_desc">PCのソフトがこのスマホのアドレスに接続すると、PCのアドレスを自動で取得します</string>
+    <string name="set_smooth_desc">なめらかにするほどブレは減りますが、反応が少し遅くなります</string>
+    <string name="set_advanced_open">詳細設定を開く</string>
+    <string name="set_advanced_close">詳細設定を閉じる</string>
+    <string name="set_advanced_desc">ほとんどの場合、変更する必要はありません</string>
+    <string name="set_invert_pitch">うなずきを反転</string>
+    <string name="set_invert_yaw">首振りを反転</string>
+    <string name="set_invert_roll">首かしげを反転</string>
+    <string name="set_invert_desc">PCのアバターが逆に動くときだけオンにしてください</string>
+    <string name="set_port">ポート</string>
+    <string name="set_port_ifm_desc">通常は49983のままで大丈夫です</string>
+    <string name="set_port_vmc_desc">PCのソフトのVMC受信ポートと同じにしてください（通常は39539）</string>
+    <string name="set_vmc_position">頭の位置も送信</string>
+    <string name="set_vmc_position_desc">体を前後・左右に動かすと、アバターもついてきます</string>
+    <string name="set_vmc_position_scale">動きの大きさ</string>
+    <string name="smaller">小さく</string>
+    <string name="bigger">大きく</string>
+    <string name="set_vmc_presets">基本の表情を送信</string>
+    <string name="set_vmc_presets_desc">まばたきと「あ・い・う・え・お」の口の形</string>
+    <string name="set_vmc_perfect_sync">細かい表情を送信（パーフェクトシンク）</string>
+    <string name="set_vmc_perfect_sync_desc">アバターが52種類の表情に対応しているときにオンにしてください</string>
+    <string name="set_vmc_emotions">感情表現を自動で</string>
+    <string name="set_vmc_emotions_desc">笑顔・怒り・悲しみ・驚きを顔から読み取ります</string>
+    <string name="set_vmc_arm_pose">腕を下ろしたポーズを送信</string>
+    <string name="set_vmc_arm_pose_desc">受信側のソフトで腕がTポーズになるときはオンにしてください。腕を別でトラッキングしている場合はオフにしてください</string>
+    <string name="set_send_rate">送信頻度</string>
+    <string name="set_send_rate_desc">1秒に何回送信するかです。通常は60のままで大丈夫です</string>
+    <string name="set_gpu">GPUアクセラレーションを使う</string>
+    <string name="set_gpu_desc">オンにするとトラッキングが速くなります。表示が乱れる場合はオフにしてください</string>
+    <string name="set_reset_confirm">PCのアドレス以外のすべての設定を初期状態に戻します。</string>
+    <string name="set_reset_yes">リセット</string>
+
+    <!-- Onboarding -->
+    <string name="ob_welcome_title">スマホのカメラで\nアバターを動かそう</string>
+    <string name="ob_welcome_body">表情や頭の動きを、アバターがそのまま再現します。</string>
+    <string name="ob_feature_face">笑う、話す、まばたきする表情をそのまま</string>
+    <string name="ob_feature_pc">PCの配信ソフトにすぐ送信</string>
+    <string name="ob_feature_phone">iPhoneなしで、Androidスマホひとつで</string>
+    <string name="ob_camera_title">表情を読み取るには\nカメラが必要です</string>
+    <string name="ob_camera_body">カメラの映像は保存も外部への送信もしません。顔の動きの情報だけを使います。</string>
+    <string name="ob_camera_cta">カメラを許可する</string>
+    <string name="ob_avatar_title">あなたのアバターを\n読み込みましょう</string>
+    <string name="ob_avatar_body">スマホに保存したVRMファイルを選んでください。まだない場合は、サンプルアバターで試せます。</string>
+    <string name="ob_avatar_sample">サンプルアバターで始める</string>
+    <string name="avatar_loading">アバターを読み込んでいます…</string>
+    <string name="avatar_failed">アバターを読み込めませんでした。\n別のVRMファイルでもう一度お試しください。</string>
+    <string name="avatar_restored">新しいアバターを読み込めなかったため、前のアバターに戻しました。</string>
+    <string name="sample_chip_label">サンプルアバター</string>
+    <string name="sample_chip_action">自分のアバターに変更</string>
+    <string name="ob_avatar_cta">VRMファイルを選ぶ</string>
+    <string name="ob_later">あとで</string>
+    <string name="ob_where_title">どこで使いますか？</string>
+    <string name="ob_where_body">あとから設定でいつでも変更できます。</string>
+    <string name="ob_where_pc">PCの配信ソフトと一緒に</string>
+    <string name="ob_where_pc_desc">VSeeFace、VNyan、Warudoなどに送信します</string>
+    <string name="ob_where_phone">スマホだけで使う</string>
+    <string name="ob_where_phone_desc">PCなしで、スマホの画面でアバターを動かします</string>
+    <string name="ob_ready_title">準備ができました！</string>
+    <string name="ob_ready_body">スタートすると、まず正面を合わせます。スマホを顔の前に置いて画面を見てください。</string>
+
+    <!-- Idle dim -->
+    <string name="dim_hint">省電力モード中 · タップで戻ります</string>
+    <plurals name="dim_warn_title">
+        <item quantity="other">%1$d秒後に省電力モードになります</item>
+    </plurals>
+    <string name="dim_warn_body">バッテリーと発熱を抑えるため、画面を暗くします。トラッキングとPCへの送信はそのまま続きます。</string>
+    <string name="dim_warn_cancel">画面をタップするとキャンセルできます</string>
+    <string name="set_dim">離席時に画面を暗くする</string>
+    <string name="set_dim_off">オフ</string>
+    <string name="set_dim_off_desc">スマホの画面を録画したり見せたりするとき</string>
+    <string name="set_dim_30s">30秒後</string>
+    <string name="set_dim_1m">1分後</string>
+    <string name="set_dim_3m">3分後</string>
+    <string name="set_dim_5m">5分後</string>
+    <string name="set_dim_option_desc">発熱とバッテリーを抑えます。トラッキングとPCへの送信は続きます</string>
+
+    <!-- Debug console -->
+    <string name="set_data_console">リアルタイムデバッグコンソール</string>
+    <string name="set_data_console_desc">PCに送るパケットとトラッキング値をメイン画面に表示します</string>
+
+    <!-- Misc -->
+    <string name="overlay_tracking_off">トラッキングはオフです</string>
+    <string name="overlay_searching">顔を探しています…</string>
+    <string name="set_send_rate_value">%1$s回/秒</string>
+    <string name="error_file_open">ファイルを開けません</string>
+    <string name="error_tracker_start">トラッキングを開始できませんでした: %1$s</string>
+    <string name="error_sender_setup">送信設定に問題があります: %1$s</string>
+    <string name="error_not_vrm">VRMファイルではありません。.vrmファイルを選んでください</string>
+
+    <!-- Notification -->
+    <string name="notification_channel">トラッキング</string>
+    <string name="notification_title">アバターがあなたの顔に合わせて動いています</string>
+    <string name="notification_text">タップしてアプリに戻る</string>
+</resources>

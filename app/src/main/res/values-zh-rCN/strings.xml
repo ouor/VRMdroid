@@ -1,0 +1,232 @@
+<resources>
+    <string name="app_name">VRMDroid</string>
+
+    <!-- Main screen -->
+    <string name="start">开始</string>
+    <string name="stop">停止</string>
+    <string name="action_calibrate">校准正面</string>
+    <string name="action_adjust">表情调节</string>
+    <string name="action_avatar">更换形象</string>
+    <string name="action_hide_ui">隐藏界面</string>
+    <string name="action_settings">设置</string>
+    <string name="hide_ui_hint">点按屏幕即可重新显示菜单</string>
+
+    <string name="empty_title">还没有虚拟形象哦</string>
+    <string name="empty_body">选择一个 VRM 文件，载入你的虚拟形象吧</string>
+    <string name="empty_cta">选择形象</string>
+    <string name="empty_help">去哪里找 VRM 文件？</string>
+    <string name="vrm_help_title">获取 VRM 文件</string>
+    <string name="vrm_help_body">VRM 是虚拟主播常用的虚拟形象文件。\n\n• 可以用 VRoid Studio 自己制作。\n• 也可以在 VRoid Hub、BOOTH 等网站下载，请务必确认使用条款。\n\n把下载好的 .vrm 文件保存到手机后，点按“选择形象”即可。</string>
+    <string name="ok">确定</string>
+    <string name="vrm_loaded">已切换为 %1$s</string>
+    <string name="vrm_load_failed">载入失败。%1$s</string>
+    <string name="camera_permission_needed">需要相机权限才能识别表情</string>
+    <string name="camera_permission_off_title">相机权限已关闭</string>
+    <string name="camera_permission_off_body">在“设置 → 权限”中允许使用相机，就能马上使用啦。</string>
+    <string name="open_settings">打开设置</string>
+    <string name="vrm_load_failed_generic">请确认这是不是 VRM 文件</string>
+
+    <!-- Status pill -->
+    <string name="pill_off">已关闭</string>
+    <string name="pill_error">出了点问题</string>
+    <string name="error_send_failed">无法发送到电脑。请检查电脑地址和 Wi-Fi。</string>
+    <string name="error_port_busy">其他应用正在占用 %1$d 端口，无法检测电脑的连接。</string>
+    <string name="error_camera_lost">无法使用相机。请检查是否有其他应用正在使用相机。</string>
+    <string name="pill_no_face">看不到脸</string>
+    <string name="pill_face">面部捕捉中</string>
+    <string name="pill_pc_sending">正在发送到电脑</string>
+    <string name="pill_pc_waiting">等待电脑连接</string>
+
+    <!-- Calibration guide -->
+    <string name="calib_title">请看向正前方，保持不动一会儿</string>
+    <string name="calib_no_face">请调整手机，让脸出现在画面中</string>
+    <string name="calib_done">正面校准完成</string>
+    <string name="calib_need_start">请先点按“开始”</string>
+    <string name="calib_later">相机开启后，请点按“校准正面”</string>
+
+    <!-- Status sheet -->
+    <string name="status_title">当前状态</string>
+    <string name="status_tracking">面部捕捉</string>
+    <string name="status_pc">电脑连接</string>
+    <string name="status_phone_address">本机地址</string>
+    <string name="status_quality_good">很流畅</string>
+    <string name="status_quality_ok">还不错</string>
+    <string name="status_quality_slow">有点慢</string>
+    <string name="status_off">已关闭</string>
+    <string name="status_no_face">正在寻找面部</string>
+    <string name="status_pc_off">不发送（仅在手机上查看）</string>
+    <string name="status_pc_waiting">等待电脑软件连接</string>
+    <string name="status_pc_sending">正在发送到 %1$s</string>
+    <string name="status_connect_cta">连接电脑</string>
+    <string name="status_details">详情</string>
+    <string name="status_thermal_warm">手机有点热，已稍微降低形象预览的画质</string>
+    <string name="status_thermal_hot">手机过热，已降低形象预览和面部捕捉的速度</string>
+    <string name="copied">地址已复制</string>
+    <string name="copy">复制</string>
+
+    <!-- PC found card -->
+    <string name="pc_found_title">找到电脑了</string>
+    <string name="pc_found_body">已连接到 %1$s。电脑上的虚拟形象现在会跟着你动啦。</string>
+
+    <!-- Quick adjust sheet -->
+    <string name="adjust_title">表情调节</string>
+    <string name="adjust_caption">一边看着形象一边调整吧</string>
+    <string name="adjust_blink">眨眼</string>
+    <string name="adjust_mouth">嘴部动作</string>
+    <string name="adjust_smooth">动作平滑</string>
+    <string name="less_sensitive">迟钝</string>
+    <string name="more_sensitive">灵敏</string>
+    <string name="faster">更快</string>
+    <string name="smoother">更平滑</string>
+    <string name="adjust_mirror">镜像显示</string>
+    <string name="adjust_mirror_desc">你往右看时，形象也会看向屏幕右侧</string>
+    <string name="adjust_link_eyes">双眼同步闭合</string>
+    <string name="adjust_link_eyes_desc">开启后无法单眼眨眼（wink）。总是只闭一只眼时请开启</string>
+    <string name="adjust_face_dots">显示面部识别点</string>
+    <string name="adjust_face_dots_desc">会以小窗显示在屏幕角落</string>
+    <string name="reset_defaults">恢复默认设置</string>
+    <string name="reset_expression">仅重置表情设置</string>
+    <string name="reset_done">已恢复默认设置</string>
+    <string name="reset_expression_done">已恢复默认表情设置</string>
+
+    <!-- Connect guide -->
+    <string name="back">返回</string>
+    <string name="cancel">取消</string>
+    <string name="done">完成</string>
+    <string name="connect_title">连接电脑</string>
+    <string name="connect_which">想用哪个软件\n驱动虚拟形象？</string>
+    <string name="connect_which_desc">请选择你在电脑上直播时用的虚拟形象软件</string>
+    <string name="connect_vseeface">VSeeFace</string>
+    <string name="connect_vseeface_desc">最多人使用的软件</string>
+    <string name="connect_iphone_apps">VNyan · Warudo 等</string>
+    <string name="connect_iphone_apps_desc">支持“iPhone 面捕（iFacialMocap）”的软件</string>
+    <string name="connect_vmc">通过 VMC 接收的软件</string>
+    <string name="connect_vmc_desc">VMagicMirror 等带有“VMC 接收”功能的软件</string>
+    <string name="connect_phone_only">不用电脑，只在手机上看</string>
+    <string name="connect_steps_title">请按以下步骤操作</string>
+    <string name="connect_vsf_1">在电脑上打开 VSeeFace</string>
+    <string name="connect_vsf_2">在设置 → General settings 中开启“iFacialMocap”接收</string>
+    <string name="connect_vsf_3">在地址栏中原样输入下面的数字</string>
+    <string name="connect_ifm_1">在电脑软件中选择“iPhone / iFacialMocap”面捕</string>
+    <string name="connect_ifm_2">在要求填写手机地址的地方输入下面的数字</string>
+    <string name="connect_vmc_1">在电脑软件中开启“VMC 接收”，并将端口设为 39539</string>
+    <string name="connect_vmc_2">请在下方输入电脑的地址</string>
+    <string name="connect_pc_address">电脑地址</string>
+    <string name="connect_pc_address_invalid">请检查地址格式（例：192.168.0.10）</string>
+    <string name="connect_pc_address_help">在电脑上打开“命令提示符”，输入 ipconfig 后显示的 IPv4 地址</string>
+    <string name="connect_waiting">正在等待电脑连接…</string>
+    <string name="connect_sending">正在发送到电脑。请看看电脑上的虚拟形象有没有动起来</string>
+    <string name="connect_need_start">在主界面点按“开始”就会连接</string>
+    <string name="connect_trouble">连不上？请确认手机和电脑连接的是同一个 Wi-Fi。</string>
+
+    <!-- Settings -->
+    <string name="set_section_pc">电脑连接</string>
+    <string name="set_section_face">我的表情</string>
+    <string name="set_section_screen">屏幕</string>
+    <string name="set_section_advanced">高级</string>
+    <string name="set_connect_desc">按步骤操作就能连上</string>
+    <string name="set_protocol">发送方式</string>
+    <string name="set_protocol_ifm">iPhone 面捕方式</string>
+    <string name="set_protocol_ifm_desc">VSeeFace · VNyan · Warudo</string>
+    <string name="set_protocol_vmc">VMC 方式</string>
+    <string name="set_protocol_vmc_desc">支持 VMC 接收的软件</string>
+    <string name="set_protocol_none">不发送</string>
+    <string name="set_protocol_none_desc">不用电脑，只在手机上看</string>
+    <string name="set_pc_address_auto_desc">留空的话，电脑连接时会自动填写</string>
+    <string name="set_pc_auto">自动查找</string>
+    <string name="set_pc_unset">请输入</string>
+    <string name="set_auto_detect">自动查找电脑</string>
+    <string name="set_auto_detect_desc">电脑软件连接到本机地址时，会自动获取电脑的地址</string>
+    <string name="set_smooth_desc">越平滑抖动越少，但反应会稍慢一些</string>
+    <string name="set_advanced_open">展开高级设置</string>
+    <string name="set_advanced_close">收起高级设置</string>
+    <string name="set_advanced_desc">大多数情况下不用改</string>
+    <string name="set_invert_pitch">反转点头方向</string>
+    <string name="set_invert_yaw">反转转头方向</string>
+    <string name="set_invert_roll">反转歪头方向</string>
+    <string name="set_invert_desc">仅在电脑上的形象动作方向相反时开启</string>
+    <string name="set_port">端口</string>
+    <string name="set_port_ifm_desc">一般保持 49983 不变即可</string>
+    <string name="set_port_vmc_desc">需与电脑软件的 VMC 接收端口一致（通常为 39539）</string>
+    <string name="set_vmc_position">同时发送头部位置</string>
+    <string name="set_vmc_position_desc">身体前后左右移动时，形象也会跟着移动</string>
+    <string name="set_vmc_position_scale">移动幅度</string>
+    <string name="smaller">小</string>
+    <string name="bigger">大</string>
+    <string name="set_vmc_presets">发送基础表情</string>
+    <string name="set_vmc_presets_desc">眨眼和 A·I·U·E·O 口型</string>
+    <string name="set_vmc_perfect_sync">发送精细表情（Perfect Sync）</string>
+    <string name="set_vmc_perfect_sync_desc">形象支持 52 种表情时请开启</string>
+    <string name="set_vmc_emotions">自动识别情绪表情</string>
+    <string name="set_vmc_emotions_desc">从面部识别开心、生气、难过、惊讶</string>
+    <string name="set_vmc_arm_pose">发送手臂放下姿势</string>
+    <string name="set_vmc_arm_pose_desc">接收软件中手臂呈 T 字形张开时请开启。如果另外在追踪手臂，请关闭</string>
+    <string name="set_send_rate">发送频率</string>
+    <string name="set_send_rate_desc">每秒发送的次数。一般保持 60 不变即可</string>
+    <string name="set_gpu">使用图形加速</string>
+    <string name="set_gpu_desc">开启后面部捕捉更快。如果画面异常，请关闭</string>
+    <string name="set_reset_confirm">将除电脑地址以外的所有设置恢复到初始状态。</string>
+    <string name="set_reset_yes">恢复</string>
+
+    <!-- Onboarding -->
+    <string name="ob_welcome_title">用手机相机\n驱动你的虚拟形象</string>
+    <string name="ob_welcome_body">表情和头部动作，形象都会原样跟着做。</string>
+    <string name="ob_feature_face">笑、说话、眨眼，表情原样还原</string>
+    <string name="ob_feature_pc">直接发送到电脑直播软件</string>
+    <string name="ob_feature_phone">无需 iPhone，一部安卓手机就够</string>
+    <string name="ob_camera_title">识别表情\n需要用到相机</string>
+    <string name="ob_camera_body">相机画面不会被保存或发送到外部，只会使用面部的动作数据。</string>
+    <string name="ob_camera_cta">允许使用相机</string>
+    <string name="ob_avatar_title">载入你的\n虚拟形象</string>
+    <string name="ob_avatar_body">请选择保存在手机里的 VRM 文件。还没有的话，可以先用示例形象试试。</string>
+    <string name="ob_avatar_sample">先用示例形象</string>
+    <string name="avatar_loading">正在载入虚拟形象…</string>
+    <string name="avatar_failed">虚拟形象载入失败。\n请换一个 VRM 文件再试试。</string>
+    <string name="avatar_restored">新形象载入失败，已恢复为之前的形象。</string>
+    <string name="sample_chip_label">示例形象</string>
+    <string name="sample_chip_action">换成我的形象</string>
+    <string name="ob_avatar_cta">选择 VRM 文件</string>
+    <string name="ob_later">以后再说</string>
+    <string name="ob_where_title">要在哪里使用？</string>
+    <string name="ob_where_body">之后随时可以在设置中更改。</string>
+    <string name="ob_where_pc">搭配电脑直播软件</string>
+    <string name="ob_where_pc_desc">发送到 VSeeFace、VNyan、Warudo 等</string>
+    <string name="ob_where_phone">只在手机上看</string>
+    <string name="ob_where_phone_desc">不用电脑，直接在手机屏幕上驱动形象</string>
+    <string name="ob_ready_title">准备好了！</string>
+    <string name="ob_ready_body">开始后会先校准正面。请把手机放在脸前，看着屏幕。</string>
+
+    <!-- Idle dim -->
+    <string name="dim_hint">省电模式中 · 点按即可恢复</string>
+    <plurals name="dim_warn_title">
+        <item quantity="other">%1$d 秒后进入省电模式</item>
+    </plurals>
+    <string name="dim_warn_body">为节省电量、减少发热，屏幕会变暗。面部捕捉和发送到电脑不受影响。</string>
+    <string name="dim_warn_cancel">点按屏幕即可取消</string>
+    <string name="set_dim">离开时调暗屏幕</string>
+    <string name="set_dim_off">关闭</string>
+    <string name="set_dim_off_desc">适合录制或展示手机屏幕时</string>
+    <string name="set_dim_30s">30 秒后</string>
+    <string name="set_dim_1m">1 分钟后</string>
+    <string name="set_dim_3m">3 分钟后</string>
+    <string name="set_dim_5m">5 分钟后</string>
+    <string name="set_dim_option_desc">减少发热、节省电量。面部捕捉和发送到电脑会继续进行</string>
+
+    <!-- Debug console -->
+    <string name="set_data_console">实时调试控制台</string>
+    <string name="set_data_console_desc">在主界面显示发送到电脑的数据包和追踪数值</string>
+
+    <!-- Misc -->
+    <string name="overlay_tracking_off">面部捕捉已关闭</string>
+    <string name="overlay_searching">正在寻找面部…</string>
+    <string name="set_send_rate_value">%1$s 次/秒</string>
+    <string name="error_file_open">无法打开文件</string>
+    <string name="error_tracker_start">面部捕捉启动失败：%1$s</string>
+    <string name="error_sender_setup">发送设置有问题：%1$s</string>
+    <string name="error_not_vrm">这不是 VRM 文件。请选择 .vrm 文件</string>
+
+    <!-- Notification -->
+    <string name="notification_channel">面部捕捉</string>
+    <string name="notification_title">虚拟形象正在跟随你的面部动作</string>
+    <string name="notification_text">点按即可返回应用</string>
+</resources>

@@ -66,7 +66,7 @@
 
     <!-- PC found card -->
     <string name="pc_found_title">PC를 찾았어요</string>
-    <string name="pc_found_body">%1$s와 연결됐어요. 이제 PC의 아바타가 따라 움직여요.</string>
+    <string name="pc_found_body">%1$s에 연결됐어요. 이제 PC의 아바타가 따라 움직여요.</string>
 
     <!-- Quick adjust sheet -->
     <string name="adjust_title">표정 조절</string>
@@ -87,6 +87,7 @@
     <string name="reset_defaults">기본값으로 되돌리기</string>
     <string name="reset_expression">표정 설정만 처음으로</string>
     <string name="reset_done">기본값으로 되돌렸어요</string>
+    <string name="reset_expression_done">표정 설정을 처음으로 되돌렸어요</string>
 
     <!-- Connect guide -->
     <string name="back">뒤로</string>
@@ -197,7 +198,9 @@
 
     <!-- Idle dim -->
     <string name="dim_hint">절전 모드 중이에요 · 탭하면 돌아와요</string>
-    <string name="dim_warn_title">%1$d초 뒤 절전 모드로 바뀌어요</string>
+    <plurals name="dim_warn_title">
+        <item quantity="other">%1$d초 뒤 절전 모드로 바뀌어요</item>
+    </plurals>
     <string name="dim_warn_body">배터리와 발열을 아끼려고 화면을 어둡게 해요. 얼굴 인식과 PC 보내기는 그대로예요.</string>
     <string name="dim_warn_cancel">화면을 탭하면 취소돼요</string>
     <string name="set_dim">자리 비우면 화면 어둡게</string>
@@ -218,6 +221,7 @@
     <string name="overlay_searching">얼굴을 찾고 있어요…</string>
     <string name="set_send_rate_value">%1$s회/초</string>
     <string name="error_file_open">파일을 열 수 없어요</string>
+    <string name="error_tracker_start">얼굴 인식을 시작하지 못했어요: %1$s</string>
     <string name="error_sender_setup">보내기 설정에 문제가 있어요: %1$s</string>
     <string name="error_not_vrm">VRM 파일이 아니에요. .vrm 파일을 골라 주세요</string>
 

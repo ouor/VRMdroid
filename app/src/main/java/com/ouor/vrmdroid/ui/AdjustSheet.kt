@@ -69,7 +69,7 @@ object AdjustSheet {
                 setOnClickListener {
                     settings.resetExpression()
                     onFacePreviewChanged(settings.previewEnabled)
-                    Toast.makeText(context, R.string.reset_done, Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, R.string.reset_expression_done, Toast.LENGTH_SHORT).show()
                     build()
                 }
             }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {

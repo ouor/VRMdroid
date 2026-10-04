@@ -115,7 +115,7 @@ class IdleDimmer(
         if (seconds == shownCount && warning.visibility == View.VISIBLE) return
         shownCount = seconds
         warningCount.text = seconds.toString()
-        warningTitle.text = activity.getString(R.string.dim_warn_title, seconds)
+        warningTitle.text = activity.resources.getQuantityString(R.plurals.dim_warn_title, seconds, seconds)
         if (warning.visibility != View.VISIBLE) {
             warning.alpha = 0f
             warning.translationY = -warning.resources.displayMetrics.density * 16
