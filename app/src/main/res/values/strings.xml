@@ -25,6 +25,8 @@
 
     <!-- Status pill -->
     <string name="pill_off">꺼져 있어요</string>
+    <string name="pill_error">문제가 생겼어요</string>
+    <string name="error_camera_lost">카메라를 쓸 수 없어요. 다른 앱이 카메라를 쓰고 있는지 확인해 주세요.</string>
     <string name="pill_no_face">얼굴이 안 보여요</string>
     <string name="pill_face">얼굴 인식 중</string>
     <string name="pill_pc_connected">PC 연결됨</string>

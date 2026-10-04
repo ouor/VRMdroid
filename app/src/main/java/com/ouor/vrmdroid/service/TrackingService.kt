@@ -12,6 +12,7 @@ import android.os.SystemClock
 import android.util.Log
 import android.util.Size
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.CameraState
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.resolutionselector.ResolutionSelector
 import androidx.camera.core.resolutionselector.ResolutionStrategy
@@ -35,6 +36,7 @@ import com.ouor.vrmdroid.tracking.FaceTracker
 import com.ouor.vrmdroid.tracking.FaceTrackerFactory
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.atomic.AtomicReference
 
 /**
@@ -56,6 +58,7 @@ class TrackingService : LifecycleService() {
     private var senders: List<TrackingSender> = emptyList()
     private val pendingSend = AtomicReference<TrackingResult?>(null)
     private var lastSendAt = 0L
+    @Volatile private var stopped = false
     /** Address of the PC that last sent an iFacialMocap handshake this session. */
     @Volatile private var handshakeHost: String? = null
 
@@ -125,7 +128,17 @@ class TrackingService : LifecycleService() {
             tracker?.submit(bitmap, rotation, SystemClock.uptimeMillis())
         }
         provider.unbindAll()
-        provider.bindToLifecycle(this, CameraSelector.DEFAULT_FRONT_CAMERA, analysis)
+        val camera = provider.bindToLifecycle(this, CameraSelector.DEFAULT_FRONT_CAMERA, analysis)
+        // Errors after binding (another app grabbed the camera, device policy, …) only show up
+        // here; surface them instead of silently reporting "no face".
+        camera.cameraInfo.cameraState.observe(this) { state ->
+            val error = state.error
+            if (error != null) {
+                fail(getString(R.string.error_camera_lost), IllegalStateException("camera error ${error.code}"))
+            } else if (state.type == CameraState.Type.OPEN) {
+                TrackingHub.updateStatus { if (it.error == getString(R.string.error_camera_lost)) it.copy(error = null) else it }
+            }
+        }
     }
 
     /** Runs on [analysisExecutor]. */
@@ -144,6 +157,8 @@ class TrackingService : LifecycleService() {
 
     /** Called on the tracker's result thread. */
     private fun onFrame(frame: FaceFrame) {
+        // A result can still arrive from MediaPipe's thread after onDestroy started.
+        if (stopped) return
         if (TrackingHub.calibrationRequested) {
             TrackingHub.calibrationRequested = false
             processor.requestCalibration()
@@ -157,11 +172,15 @@ class TrackingService : LifecycleService() {
         lastSendAt = now
         // Latest-wins hand-off so a slow network never backs up the tracker.
         if (pendingSend.getAndSet(result) == null) {
-            networkExecutor.execute {
-                val r = pendingSend.getAndSet(null) ?: return@execute
-                for (s in senders) {
-                    try { s.send(r, settings) } catch (e: Exception) { Log.w(TAG, "send failed: ${s.destination}", e) }
+            try {
+                networkExecutor.execute {
+                    val r = pendingSend.getAndSet(null) ?: return@execute
+                    for (s in senders) {
+                        try { s.send(r, settings) } catch (e: Exception) { Log.w(TAG, "send failed: ${s.destination}", e) }
+                    }
                 }
+            } catch (_: RejectedExecutionException) {
+                // Shutting down; dropping the last frame is fine.
             }
         }
     }
@@ -259,6 +278,10 @@ class TrackingService : LifecycleService() {
     }
 
     override fun onDestroy() {
+        // Order matters: stop accepting frames first, then tear down, and reset shared state
+        // last so a late result can't republish a stale frame after the reset.
+        stopped = true
+        tracker?.listener = null
         settings.prefs.unregisterOnSharedPreferenceChangeListener(prefsListener)
         cameraProvider?.unbindAll()
         cameraProvider = null

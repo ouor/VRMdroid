@@ -26,7 +26,7 @@
         <!-- configChanges: the embedded Unity player must not be recreated (its teardown ends the process). -->
         <activity
             android:name=".MainActivity"
-            android:configChanges="mcc|mnc|locale|touchscreen|keyboard|keyboardHidden|navigation|orientation|screenLayout|uiMode|screenSize|smallestScreenSize|fontScale|layoutDirection|density"
+            android:configChanges="mcc|mnc|locale|touchscreen|keyboard|keyboardHidden|navigation|orientation|screenLayout|uiMode|screenSize|smallestScreenSize|fontScale|layoutDirection|density|colorMode|fontWeightAdjustment|grammaticalGender"
             android:exported="true"
             android:launchMode="singleTask">
             <intent-filter>

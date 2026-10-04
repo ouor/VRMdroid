@@ -16,6 +16,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -140,6 +141,14 @@ class MainActivity : AppCompatActivity(), UnityActivitySupport {
         findViewById<View>(R.id.settings).setOnClickListener { startActivity(Intent(this, SettingsActivity::class.java)) }
         findViewById<View>(R.id.hide_ui).setOnClickListener { setChromeVisible(false) }
         restoreUi.setOnClickListener { setChromeVisible(true) }
+
+        // Back leaves the app running in the background (like a streaming app) instead of
+        // finishing it, which would end the process and stop sending to the PC.
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (restoreUi.visibility == View.VISIBLE) setChromeVisible(true) else moveTaskToBack(true)
+            }
+        })
 
         dimmer = IdleDimmer(
             activity = this,
@@ -362,9 +371,10 @@ class MainActivity : AppCompatActivity(), UnityActivitySupport {
     override fun onPause() { super.onPause(); unityHost?.onPause() }
 
     override fun onDestroy() {
-        // Unity's destroy() ends the process (including the tracking service), so only do it
-        // when the activity is really going away; config changes are handled in place.
-        unityHost?.onDestroy()
+        // Unity's destroy() ends the whole process, tracking service included. Only do it when
+        // the activity is really finishing; anything else (config change, system reclaim)
+        // must not take the stream down with it.
+        if (isFinishing && !isChangingConfigurations) unityHost?.onDestroy()
         super.onDestroy()
     }
 
