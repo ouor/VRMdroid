@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.content.pm.ServiceInfo
 import android.hardware.camera2.CameraCharacteristics
@@ -13,7 +14,10 @@ import android.hardware.camera2.CameraManager
 import android.hardware.camera2.CaptureRequest
 import android.hardware.display.DisplayManager
 import android.net.wifi.WifiManager
+import android.os.BatteryManager
+import android.os.PowerManager
 import android.os.SystemClock
+import android.os.Trace
 import android.util.Log
 import android.util.Range
 import android.util.Size
@@ -40,6 +44,7 @@ import com.ouor.vrmdroid.output.VmcSender
 import com.ouor.vrmdroid.settings.AppSettings
 import com.ouor.vrmdroid.settings.OutputProtocol
 import com.ouor.vrmdroid.settings.TrackingConfig
+import com.ouor.vrmdroid.tracking.FaceFrame
 import com.ouor.vrmdroid.tracking.FaceTracker
 import com.ouor.vrmdroid.tracking.FaceTrackerFactory
 import com.ouor.vrmdroid.tracking.FrameConverter
@@ -66,6 +71,7 @@ class TrackingService : LifecycleService() {
     private val converter = FrameConverter()
     private var started = false
     private var wifiLock: WifiManager.WifiLock? = null
+    private val perf = PerfStats(SystemClock::uptimeMillis)
 
     /** Keeps the analysis rotation in step with the display (e.g. phone moved to a landscape stand). */
     private val displayListener = object : DisplayManager.DisplayListener {
@@ -171,9 +177,13 @@ class TrackingService : LifecycleService() {
                 val t = tracker
                 // Skip conversion entirely when the tracker would drop the frame anyway.
                 if (t == null || !t.isReady) return@use
+                val start = SystemClock.elapsedRealtimeNanos()
+                Trace.beginSection("vrm.convert")
+                val bitmap = try { converter.convert(it) } finally { Trace.endSection() }
+                perf.onConvert((SystemClock.elapsedRealtimeNanos() - start) / 1e6f)
                 // Sensor timestamp (ns) rather than "now", so queueing jitter stays out of the
                 // filters' time steps.
-                t.submit(converter.convert(it), it.imageInfo.timestamp / 1_000_000)
+                t.submit(bitmap, it.imageInfo.timestamp / 1_000_000)
             }
         }
         provider.unbindAll()
@@ -197,12 +207,39 @@ class TrackingService : LifecycleService() {
         try {
             val t = FaceTrackerFactory.create(this, settings)
             // Ignore late results from a tracker that has since been replaced.
-            t.listener = { frame -> if (t === tracker) engine.onFrame(frame) }
+            t.listener = { frame -> if (t === tracker) onFrame(frame) }
             tracker = t
             TrackingHub.updateStatus { it.copy(trackerName = t.name) }
         } catch (e: Exception) {
             fail("얼굴 인식을 시작하지 못했어요: ${e.message}", e)
         }
+    }
+
+    /** Runs on the tracker's result thread. */
+    private fun onFrame(frame: FaceFrame) {
+        perf.onResult(frame.detected, frame.inferenceMs.toFloat(), frameAgeMs(frame.timestampMs))
+        Trace.beginSection("vrm.process")
+        try { engine.onFrame(frame) } finally { Trace.endSection() }
+        perf.poll(::deviceState)?.let { Log.i(PERF_TAG, it) }
+    }
+
+    /**
+     * Milliseconds from capture to now. Camera timestamps use either the uptime or the realtime
+     * clock depending on the device; the one giving a plausible age is the right one.
+     */
+    private fun frameAgeMs(sensorMs: Long): Float? =
+        longArrayOf(SystemClock.uptimeMillis() - sensorMs, SystemClock.elapsedRealtime() - sensorMs)
+            .firstOrNull { it in 0..MAX_FRAME_AGE_MS }?.toFloat()
+
+    /** Thermal state for the perf log; headroom 1.0 is where the device starts throttling. */
+    private fun deviceState(): String {
+        val power = getSystemService(PowerManager::class.java)
+        val headroom = power.getThermalHeadroom(0)
+        val battery = registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+            ?.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, Int.MIN_VALUE)?.takeIf { it != Int.MIN_VALUE }
+        return "thermal=${power.currentThermalStatus}" +
+            " headroom=" + (if (headroom.isNaN()) "-" else "%.2f".format(headroom)) +
+            " battery=" + (battery?.let { "%.1fC".format(it / 10f) } ?: "-")
     }
 
     /** Runs on the network thread (see [TrackingEngine]). */
@@ -302,6 +339,8 @@ class TrackingService : LifecycleService() {
         private const val NOTIFICATION_ID = 1
         private const val ACTION_STOP = "com.ouor.vrmdroid.STOP"
         private const val TARGET_FPS = 30
+        private const val PERF_TAG = "VrmPerf"
+        private const val MAX_FRAME_AGE_MS = 2_000L
 
         fun start(context: Context) {
             ContextCompat.startForegroundService(context, Intent(context, TrackingService::class.java))
