@@ -11,6 +11,10 @@ import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.view.accessibility.AccessibilityEvent
+import androidx.core.view.AccessibilityDelegateCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.setPadding
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -70,13 +74,29 @@ class Rows(private val context: Context, private val prefs: SharedPreferences) {
         row.addView(labels(title, description), LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         val toggle = MaterialSwitch(context).apply {
             isChecked = prefs.getBoolean(key, default)
+            // The whole row is the control: one focus stop, one label, one ripple.
+            isClickable = false
+            isFocusable = false
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
             setOnCheckedChangeListener { _, checked ->
                 prefs.edit().putBoolean(key, checked).apply()
                 onChange?.invoke(checked)
+                row.sendAccessibilityEvent(AccessibilityEvent.TYPE_VIEW_CLICKED)
             }
         }
         row.addView(toggle)
+        row.isClickable = true
+        row.isFocusable = true
+        row.foreground = themeRipple(context)
         row.setOnClickListener { toggle.toggle() }
+        ViewCompat.setAccessibilityDelegate(row, object : AccessibilityDelegateCompat() {
+            override fun onInitializeAccessibilityNodeInfo(host: View, info: AccessibilityNodeInfoCompat) {
+                super.onInitializeAccessibilityNodeInfo(host, info)
+                info.className = android.widget.Switch::class.java.name
+                info.isCheckable = true
+                info.isChecked = toggle.isChecked
+            }
+        })
         card.addView(row)
         return toggle
     }
@@ -97,6 +117,7 @@ class Rows(private val context: Context, private val prefs: SharedPreferences) {
             stepSize = 5f
             value = prefs.getInt(key, default).coerceIn(min, max).let { it - (it - min) % 5 }.toFloat()
             labelBehavior = com.google.android.material.slider.LabelFormatter.LABEL_GONE
+            contentDescription = "$title, $left ↔ $right"
             addOnChangeListener { _, v, fromUser ->
                 if (fromUser) prefs.edit().putInt(key, v.toInt()).apply()
             }
@@ -122,7 +143,7 @@ class Rows(private val context: Context, private val prefs: SharedPreferences) {
             setPadding(dp(16), dp(14), dp(12), dp(14))
             isClickable = true
             isFocusable = true
-            foreground = ContextCompat.getDrawable(context, android.R.drawable.list_selector_background)
+            foreground = themeRipple(context)
             setOnClickListener { onClick() }
         }
         row.addView(labels(title, description), LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
@@ -186,7 +207,8 @@ class Rows(private val context: Context, private val prefs: SharedPreferences) {
             }
             val dialog = MaterialAlertDialogBuilder(context)
                 .setTitle(title)
-                .setView(list)
+                // Scrolls only when it must (large font sizes, small screens).
+                .setView(android.widget.ScrollView(context).apply { addView(list) })
                 .setNegativeButton(R.string.cancel, null)
                 .create()
             for (option in options) {
@@ -196,7 +218,7 @@ class Rows(private val context: Context, private val prefs: SharedPreferences) {
                     setPadding(dp(8), dp(10), dp(8), dp(10))
                     isClickable = true
                     isFocusable = true
-                    foreground = ContextCompat.getDrawable(context, android.R.drawable.list_selector_background)
+                    foreground = themeRipple(context)
                 }
                 val radio = com.google.android.material.radiobutton.MaterialRadioButton(context).apply {
                     isChecked = option.value == current

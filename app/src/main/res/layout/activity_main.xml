@@ -30,7 +30,7 @@
             android:contentDescription="@null"
             android:padding="22dp"
             android:src="@drawable/ic_face"
-            app:tint="@color/brand" />
+            app:tint="@color/brand_text" />
 
         <TextView
             style="@style/Text.Vrmdroid.Title"
@@ -98,8 +98,9 @@
             <LinearLayout
                 android:id="@+id/status_pill"
                 android:layout_width="wrap_content"
-                android:layout_height="40dp"
-                android:background="@drawable/bg_pill"
+                android:layout_height="48dp"
+                android:accessibilityLiveRegion="polite"
+                android:background="@drawable/bg_pill_touch"
                 android:clickable="true"
                 android:focusable="true"
                 android:foreground="?attr/selectableItemBackground"
@@ -140,19 +141,19 @@
 
             <ImageButton
                 android:id="@+id/hide_ui"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:background="@drawable/bg_round_button"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="@drawable/bg_round_button_touch"
                 android:contentDescription="@string/action_hide_ui"
                 android:src="@drawable/ic_visibility_off"
                 app:tint="@color/text_primary" />
 
             <ImageButton
                 android:id="@+id/settings"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:layout_marginStart="8dp"
-                android:background="@drawable/bg_round_button"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="4dp"
+                android:background="@drawable/bg_round_button_touch"
                 android:contentDescription="@string/action_settings"
                 android:src="@drawable/ic_settings"
                 app:tint="@color/text_primary" />
@@ -248,6 +249,7 @@
         android:id="@+id/restore_ui"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:contentDescription="@string/hide_ui_hint"
         android:clickable="true"
         android:focusable="true"
         android:visibility="gone" />
@@ -255,6 +257,7 @@
     <!-- Heads-up before dimming, so the screen never goes dark without warning. -->
     <LinearLayout
         android:id="@+id/dim_warning"
+        android:accessibilityLiveRegion="assertive"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="top"
@@ -272,7 +275,7 @@
             android:layout_height="44dp"
             android:background="@drawable/bg_icon_circle"
             android:gravity="center"
-            android:textColor="@color/brand"
+            android:textColor="@color/brand_text"
             android:textSize="20sp"
             android:textStyle="bold" />
 
@@ -303,7 +306,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
                 android:text="@string/dim_warn_cancel"
-                android:textColor="@color/brand" />
+                android:textColor="@color/brand_text" />
         </LinearLayout>
     </LinearLayout>
 

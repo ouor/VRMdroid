@@ -38,6 +38,7 @@ class SettingsActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         settings = AppSettings(this)
         rows = Rows(this, settings.prefs)
+        advancedOpen = savedInstanceState?.getBoolean(STATE_ADVANCED) ?: false
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -68,7 +69,7 @@ class SettingsActivity : AppCompatActivity() {
         root.addView(ScrollView(this).apply { addView(body) }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
         setContentView(root)
         ViewCompat.setOnApplyWindowInsetsListener(root) { v, insets ->
-            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.ime())
             v.setPadding(0, bars.top, 0, bars.bottom)
             insets
         }
@@ -184,6 +185,15 @@ class SettingsActivity : AppCompatActivity() {
         rows.textField(card, AppSettings.KEY_SEND_RATE, getString(R.string.set_send_rate), getString(R.string.set_send_rate_desc), "60", numeric = true,
             display = { "${it.ifEmpty { "60" }}회/초" })
         rows.switch(card, AppSettings.KEY_USE_GPU, getString(R.string.set_gpu), getString(R.string.set_gpu_desc), true)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putBoolean(STATE_ADVANCED, advancedOpen)
+    }
+
+    private companion object {
+        const val STATE_ADVANCED = "advanced_open"
     }
 
     private fun confirmReset() {

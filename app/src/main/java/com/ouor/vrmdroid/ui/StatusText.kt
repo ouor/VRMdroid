@@ -18,7 +18,7 @@ object StatusText {
         // A real failure must never hide behind "no face".
         s.error != null -> Pill(context.getString(R.string.pill_error), R.color.status_error)
         !s.running -> Pill(context.getString(R.string.pill_off), R.color.status_idle)
-        !s.faceDetected -> Pill(context.getString(R.string.pill_no_face), R.color.status_error)
+        !s.faceDetected -> Pill(context.getString(R.string.pill_no_face), R.color.status_wait)
         s.pcLink == PcLink.CONNECTED -> Pill(context.getString(R.string.pill_pc_connected), R.color.status_ok)
         s.pcLink == PcLink.SENDING -> Pill(context.getString(R.string.pill_pc_sending), R.color.status_ok)
         s.pcLink == PcLink.WAITING -> Pill(context.getString(R.string.pill_pc_waiting), R.color.status_wait)
@@ -28,7 +28,7 @@ object StatusText {
     fun tracking(context: Context, s: TrackingStatus): Pill = when {
         s.error != null -> Pill(s.error, R.color.status_error)
         !s.running -> Pill(context.getString(R.string.status_off), R.color.status_idle)
-        !s.faceDetected -> Pill(context.getString(R.string.status_no_face), R.color.status_error)
+        !s.faceDetected -> Pill(context.getString(R.string.status_no_face), R.color.status_wait)
         s.fps >= 24f -> Pill(context.getString(R.string.status_quality_good), R.color.status_ok)
         s.fps >= 15f -> Pill(context.getString(R.string.status_quality_ok), R.color.status_ok)
         else -> Pill(context.getString(R.string.status_quality_slow), R.color.status_wait)

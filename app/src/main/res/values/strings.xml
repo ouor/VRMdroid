@@ -22,6 +22,10 @@
     <string name="vrm_loaded">%1$s 아바타로 바꿨어요</string>
     <string name="vrm_load_failed">불러오지 못했어요. %1$s</string>
     <string name="camera_permission_needed">표정을 읽으려면 카메라 권한이 필요해요</string>
+    <string name="camera_permission_off_title">카메라 권한이 꺼져 있어요</string>
+    <string name="camera_permission_off_body">설정 → 권한에서 카메라를 허용하면 바로 쓸 수 있어요.</string>
+    <string name="open_settings">설정 열기</string>
+    <string name="vrm_load_failed_generic">VRM 파일이 맞는지 확인해 주세요</string>
 
     <!-- Status pill -->
     <string name="pill_off">꺼져 있어요</string>
@@ -81,6 +85,7 @@
     <string name="adjust_face_dots">인식된 얼굴 점 보기</string>
     <string name="adjust_face_dots_desc">화면 구석에 작게 보여요</string>
     <string name="reset_defaults">기본값으로 되돌리기</string>
+    <string name="reset_expression">표정 설정만 처음으로</string>
     <string name="reset_done">기본값으로 되돌렸어요</string>
 
     <!-- Connect guide -->

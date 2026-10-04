@@ -87,7 +87,7 @@ object StatusSheet {
 
         val details = TextView(activity).apply {
             setTextAppearance(R.style.Text_Vrmdroid_Caption)
-            setTextColor(activity.getColor(R.color.text_tertiary))
+            setTextColor(activity.getColor(R.color.text_secondary))
             setPadding(0, dp(12), 0, 0)
         }
         content.addView(details)

@@ -25,20 +25,34 @@ class CalibrationGuideView @JvmOverloads constructor(
     enum class Mode { COUNTDOWN, NO_FACE, DONE }
 
     var mode = Mode.COUNTDOWN
-        set(value) { field = value; invalidate() }
+        set(value) { if (field != value) { field = value; describe() }; invalidate() }
 
     /** 0..1 progress of the hold-still countdown. */
     var progress = 0f
         set(value) { field = value; invalidate() }
 
     var countdown = 3
-        set(value) { field = value; invalidate() }
+        set(value) { if (field != value) { field = value; describe() }; invalidate() }
+
+    init {
+        // Drawn on a canvas, so expose the message to TalkBack explicitly.
+        accessibilityLiveRegion = ACCESSIBILITY_LIVE_REGION_POLITE
+        describe()
+    }
+
+    private fun describe() {
+        contentDescription = when (mode) {
+            Mode.COUNTDOWN -> context.getString(R.string.calib_title) + " " + countdown
+            Mode.NO_FACE -> context.getString(R.string.calib_no_face)
+            Mode.DONE -> context.getString(R.string.calib_done)
+        }
+    }
 
     // Named so it can't be shadowed: TextPaint has its own `density` field (1.0), and using it
     // inside TextPaint.apply{} made the instruction text 18px instead of 18sp.
     private val dp = resources.displayMetrics.density
     private val sp = resources.displayMetrics.scaledDensity
-    private val brand = ContextCompat.getColor(context, R.color.brand)
+    private val brand = ContextCompat.getColor(context, R.color.brand_text)
     private val ok = ContextCompat.getColor(context, R.color.status_ok)
     private val wait = ContextCompat.getColor(context, R.color.status_wait)
 
