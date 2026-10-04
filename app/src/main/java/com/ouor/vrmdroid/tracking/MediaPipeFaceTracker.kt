@@ -3,6 +3,7 @@ package com.ouor.vrmdroid.tracking
 import android.content.Context
 import android.graphics.Bitmap
 import android.os.SystemClock
+import android.os.Trace
 import android.util.Log
 import com.google.mediapipe.framework.image.BitmapImageBuilder
 import com.google.mediapipe.tasks.core.BaseOptions
@@ -89,6 +90,7 @@ class MediaPipeFaceTracker(context: Context, useGpu: Boolean) : FaceTracker {
         submittedAt = SystemClock.uptimeMillis()
         frameSize = bitmap.width to bitmap.height
         val image = BitmapImageBuilder(bitmap).build()
+        Trace.beginAsyncSection(TRACE_INFER, ts.toInt())
         try {
             landmarker.detectAsync(image, ts)
         } catch (e: Exception) {
@@ -100,6 +102,7 @@ class MediaPipeFaceTracker(context: Context, useGpu: Boolean) : FaceTracker {
     private fun onResult(result: FaceLandmarkerResult, @Suppress("UNUSED_PARAMETER") input: Any?) {
         // Read per-frame fields before releasing `busy`: the next submit overwrites them.
         val elapsed = SystemClock.uptimeMillis() - submittedAt
+        Trace.endAsyncSection(TRACE_INFER, result.timestampMs().toInt())
         val size = frameSize
         busy.set(false)
         listener?.invoke(convert(result, elapsed, size))
@@ -174,5 +177,6 @@ class MediaPipeFaceTracker(context: Context, useGpu: Boolean) : FaceTracker {
         private const val TAG = "MediaPipeFaceTracker"
         const val MODEL_ASSET = "face_landmarker.task"
         private const val STALL_MS = 1000L
+        private const val TRACE_INFER = "vrm.infer"
     }
 }

@@ -5,6 +5,7 @@ import com.ouor.vrmdroid.output.TrackingSender
 import com.ouor.vrmdroid.processing.TrackingResult
 import com.ouor.vrmdroid.service.EngineMessages
 import com.ouor.vrmdroid.service.PcLink
+import com.ouor.vrmdroid.service.PerfStats
 import com.ouor.vrmdroid.service.SenderSettings
 import com.ouor.vrmdroid.service.TrackingEngine
 import com.ouor.vrmdroid.service.TrackingHub
@@ -195,5 +196,33 @@ class AppSettingsMigrationTest {
         val prefs = MemoryPrefs(mapOf("prefs_version" to 2, AppSettings.KEY_BLINK_SENSITIVITY to 150))
         AppSettings(prefs).migrate()
         assertEquals(150, prefs.getInt(AppSettings.KEY_BLINK_SENSITIVITY, 0))
+    }
+}
+
+class PerfStatsTest {
+    private var now = 0L
+    private val perf = PerfStats({ now }, windowMs = 1_000)
+
+    @Test fun summarizesAWindowThenStartsOver() {
+        repeat(20) { i ->
+            perf.onConvert(2f)
+            perf.onResult(detected = i % 4 != 0, inferenceMs = (i + 1).toFloat(), ageMs = 40f)
+        }
+        now = 500
+        assertNull(perf.poll()) // window still running
+        now = 1_000
+        assertEquals(
+            "hz=20.0 face=75% conv=2.0/2.0 infer=10.0/19.0 age=40.0/40.0 temp",
+            perf.poll { "temp" },
+        )
+        now = 2_000
+        assertEquals("hz=0.0 face=0% conv=- infer=- age=-", perf.poll())
+    }
+
+    @Test fun percentileIsNearestRank() {
+        val sorted = FloatArray(100) { it + 1f }
+        assertEquals(50f, PerfStats.percentile(sorted, 0.5f))
+        assertEquals(95f, PerfStats.percentile(sorted, 0.95f))
+        assertEquals(7f, PerfStats.percentile(floatArrayOf(7f), 0.95f))
     }
 }
