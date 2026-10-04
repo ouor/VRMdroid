@@ -28,6 +28,12 @@ namespace VrmDroid
         Thread _thread;
         volatile bool _running;
 
+        /// <summary>Valid packets received so far; the difference over time is the tracking rate.</summary>
+        public long ReceivedCount
+        {
+            get { lock (_lock) return _receivedCount; }
+        }
+
         /// <summary>Seconds since the last packet, or infinity if none yet.</summary>
         public double SecondsSinceLastPacket
         {
