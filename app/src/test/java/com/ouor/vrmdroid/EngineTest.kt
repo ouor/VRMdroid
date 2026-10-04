@@ -235,6 +235,7 @@ class ThermalGovernorTest {
     @Test fun stepsUpRightAwayAndDownOnlyAfterCalmReadings() {
         assertFalse(governor.update(0.80f, 0))
         assertEquals(ThermalLevel.NORMAL, governor.level)
+        assertFalse(governor.update(1.02f, 0)) // needs a second reading
         assertTrue(governor.update(1.02f, 0))
         assertEquals(ThermalLevel.HOT, governor.level)
 
@@ -246,6 +247,17 @@ class ThermalGovernorTest {
         assertEquals(ThermalLevel.HOT, governor.level)
         assertTrue(governor.update(0.90f, 0))
         assertEquals(ThermalLevel.WARM, governor.level) // one step at a time
+    }
+
+    @Test fun aOneOffHeadroomSpikeIsIgnored() {
+        // Right after start-up the forecast jumps once (camera + avatar loading), then settles.
+        assertFalse(governor.update(0.97f, 0))
+        assertFalse(governor.update(0.87f, 0))
+        assertEquals(ThermalLevel.NORMAL, governor.level)
+        // Two readings that disagree step up only as far as both agree.
+        governor.update(1.02f, 0)
+        governor.update(0.96f, 0)
+        assertEquals(ThermalLevel.WARM, governor.level)
     }
 
     @Test fun thermalStatusAloneRaisesTheLevel() {
