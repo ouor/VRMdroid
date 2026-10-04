@@ -1,76 +1,111 @@
-# VRMDroid
+<div align="center">
 
-안드로이드 폰의 전면 카메라로 얼굴을 추적해서, **아이폰 페이스 트래킹(ARKit 52 블렌드셰이프) 호환 데이터**를
-PC의 VSeeFace / VNyan / Warudo 등으로 보내는 앱입니다. 폰에서는 Unity(UniVRM)로 VRM 아바타를 미리 볼 수 있습니다.
+<img src="docs/images/icon.png" width="112" alt="VRMdroid 아이콘: 반은 트래킹 메시, 반은 가면인 여우 얼굴">
 
-```
-전면 카메라 ─▶ MediaPipe Face Landmarker ─▶ FaceProcessor ─┬─▶ iFacialMocap (UDP 49983) ─▶ VSeeFace 등
- (CameraX)      52 blendshapes + head pose   스무딩·보정·미러  ├─▶ VMC 프로토콜 (OSC, UDP 39539)
-                                                             └─▶ Unity 미리보기 (localhost UDP 39540)
-```
+# VRMdroid
 
-## 구성
+**한국어** · [English](docs/README.en.md) · [日本語](docs/README.ja.md) · [中文](docs/README.zh.md)
 
-| 경로 | 내용 |
+**아이폰 없이, 안드로이드 폰으로 하는 VTuber 페이스 트래킹**
+
+<!-- 결과물 GIF: 폰 앞에서 표정을 지으면 PC 아바타가 따라 하는 장면 -->
+
+### [최신 릴리즈 (APK)](https://github.com/ouor/VRMdroid/releases/latest)
+
+</div>
+
+> [!NOTE]
+> **카메라 영상은 휴대폰 밖으로 나가지 않아요.** <br/>
+> 얼굴 인식은 모두 휴대폰 안에서 처리하고, PC에는 표정 수치만 보내요.
+> 인터넷의 어떤 서버에도 접속하지 않아요.
+
+## 📸 이렇게 써요
+
+1. **아바타 고르기**: 휴대폰에 있는 VRM 파일을 골라요. 없으면 샘플 아바타로 먼저 써 볼 수 있어요.
+2. **PC 프로그램 고르기**: VSeeFace, VNyan, Warudo 중 쓰는 프로그램을 고르면 PC에서 눌러야 할 메뉴와 입력할 주소를 알려 줘요.
+3. **시작하기**: 휴대폰을 얼굴 앞에 두고 **시작하기**를 누르면 PC의 아바타가 내 표정을 따라 해요.
+
+<div align="center">
+<img src="docs/images/screen-2.jpg" width="30%" alt="PC와 연결하기: VSeeFace 연결 순서와 휴대폰 주소">
+<img src="docs/images/screen-1.jpg" width="30%" alt="메인 화면: 휴대폰에서 아바타가 표정을 따라 하는 모습">
+<img src="docs/images/screen-3.jpg" width="30%" alt="표정 조절: 눈 깜빡임, 입 움직임, 부드러움 슬라이더">
+</div>
+<div align="center"><sub>PC와 연결하기 · 메인 화면 · 표정 조절</sub></div>
+
+## ✨ 할 수 있는 것
+
+- **아이폰과 같은 표정**: 아이폰 트래킹과 같은 52가지 표정을 보내요. 아이폰용으로 맞춰 둔 아바타를 그대로 쓸 수 있어요.
+- **휴대폰에서 미리 보기**: 휴대폰 화면에서도 아바타가 내 표정을 따라 해요. PC에 연결하기 전에 트래킹이 잘 되는지 먼저 볼 수 있어요.
+- **연결 안내**: PC 프로그램을 고르면 순서를 하나씩 알려 주고, 연결되면 바로 표시해요.
+- **표정 조절**: 눈 깜빡임과 입 벌림 감도, 움직임의 부드러움을 아바타를 보면서 맞춰요.
+- **정면 맞추기**: 3초 동안 화면을 보면 지금 자세를 정면으로 잡아요.
+- **실시간 디버깅 콘솔**: PC로 보내는 표정 수치와 전송 속도를 메인 화면에서 바로 볼 수 있어요. 설정에서 켜요.
+- **화면 깨끗하게**: 버튼을 모두 숨겨서 휴대폰 화면을 그대로 녹화하거나 보여 줄 수 있어요.
+- **오래 켜 두기**: 자리를 비우면 화면을 어둡게 밝기를 낮추고 배터리를 절약해요. 그동안에도 트래킹과 PC 전송은 계속돼요.
+
+### 이럴 때 써 보세요
+
+- 아이폰은 없지만 VSeeFace나 Warudo에서 아이폰 수준의 표정 트래킹을 쓰고 싶을 때
+- 웹캠이 없거나, 웹캠 트래킹이 눈 깜빡임과 입 모양을 잘 못 따라올 때
+- PC가 방송만으로도 바쁠 때. 얼굴 인식은 휴대폰이 하고, PC는 받은 수치로 아바타만 움직여요.
+- PC 없이 휴대폰에서 내 VRM 아바타를 움직여 보고 싶을 때
+
+## 🖥️ 함께 쓸 수 있는 PC 프로그램
+
+| 프로그램 | 앱에서 고를 것 | PC 프로그램에서 할 것 |
+|---|---|---|
+| VSeeFace | VSeeFace | 설정 → General settings에서 iFacialMocap 받기를 켜고, 휴대폰 주소 입력 |
+| VNyan, Warudo 등 | VNyan · Warudo 등 | 트래킹 방식에서 iPhone / iFacialMocap을 고르고, 휴대폰 주소 입력 |
+| VMagicMirror 등 VMC를 받는 프로그램 | VMC로 받는 프로그램 | VMC 받기를 켜고 포트를 39539로 맞춘 뒤, 앱에 PC 주소 입력 |
+
+휴대폰과 PC는 **같은 와이파이**에 연결돼 있어야 해요. 메뉴 이름은 프로그램 버전에 따라 조금 다를 수 있어요.
+
+## ⬇️ 설치하기
+
+1. [최신 릴리즈](https://github.com/ouor/VRMdroid/releases/latest)에서 `.apk` 파일을 받아요.
+2. 받은 파일을 열어요. "출처를 알 수 없는 앱" 안내가 나오면 **설정**을 눌러 이 출처(브라우저나 내 파일)를 허용해요.
+3. Play 프로텍트 경고가 뜨면 **세부정보 더보기 → 무시하고 설치**를 눌러요. Play 스토어를 거치지 않은 앱이라 뜨는 안내예요.
+
+**업데이트**는 새 버전 APK를 그대로 설치하면 돼요. 설정과 아바타는 그대로 남아요.
+
+### 필요한 것
+
+- Android 12 이상, 64비트(arm64) 휴대폰
+- PC와 같은 와이파이
+- Dimensity 8300 휴대폰 기준으로 초당 25~30번 표정을 보내요. 휴대폰 성능과 온도에 따라 달라져요.
+
+## 🔒 개인정보
+
+- 카메라 영상은 **저장하지도, 밖으로 보내지도 않아요.** 얼굴이 어떻게 움직였는지만 써요.
+- PC로 보내는 건 **표정 수치와 고개 각도뿐**이고, 내가 정한 PC로만 가요.
+- 쓰는 권한은 두 가지예요.
+  - **카메라**: 표정을 읽을 때
+  - **인터넷**: 같은 와이파이의 PC로 표정 수치를 보낼 때
+- 광고, 분석 도구, 계정 로그인이 없어요.
+
+## 🙋 자주 묻는 질문
+
+| 이럴 때 | 이렇게 해 보세요 |
 |---|---|
-| `app/.../tracking` | `FaceTracker` 인터페이스와 MediaPipe 구현. ARKit 순서의 52개 값과 머리 자세를 냅니다. 다른 모델은 이 인터페이스를 구현해서 `FaceTrackerFactory`에 추가하면 됩니다. |
-| `app/.../processing` | One Euro 필터, 정면 보정, 감도, 미러링, Unity 좌표 변환, ARKit→VRM 프리셋(A/I/U/E/O, 눈 깜빡임) 변환 |
-| `app/.../output` | `IFacialMocapSender`, `VmcSender`, `PreviewSender`(Unity용) |
-| `app/.../service` | 카메라 포그라운드 서비스. Unity 화면이 앞에 있어도 트래킹이 계속됩니다. |
-| `unity/` | Unity 6 (6000.6.3f1, URP) + UniVRM 0.131. `Assets/VrmDroid`에 수신기·아바타 제어·export 스크립트가 있습니다. |
+| 설치가 안 돼요 | "출처를 알 수 없는 앱" 허용을 확인해 주세요. Android 11 이하나 32비트 휴대폰에서는 설치되지 않아요. |
+| PC 아바타가 안 움직여요 | 휴대폰과 PC가 같은 와이파이인지 확인해 주세요. 게스트 와이파이나 공용 와이파이는 기기끼리 통신을 막는 경우가 많아요. |
+| PC 프로그램이 휴대폰을 못 찾아요 | PC 프로그램을 처음 켤 때 뜬 Windows 방화벽 창에서 "개인 네트워크"를 허용했는지 확인해 주세요. 이미 거부했다면 Windows 보안 → 방화벽에서 허용할 수 있어요. |
+| 연결 상태를 보고 싶어요 | 앱 위쪽 상태 표시를 누르면 지금 무엇을 기다리는지와 휴대폰 주소가 나와요. |
+| 아바타가 정면을 안 봐요 | 휴대폰을 얼굴 앞에 두고 **정면 맞추기**를 눌러 주세요. |
+| 휴대폰이 뜨거워요 | 오래 방송한다면 충전기를 연결하고, 휴대폰을 케이스 밖에 두는 걸 권해요. |
 
-## 빌드
+문제가 계속되면 [이슈](https://github.com/ouor/VRMdroid/issues)에 휴대폰 기종, PC 프로그램과 함께 남겨 주세요.
 
-0. **UniVRM 설치** (처음 한 번)
-   - UniVRM은 저장소에 포함하지 않습니다. [UniVRM v0.131.2 릴리스](https://github.com/vrm-c/UniVRM/releases/tag/v0.131.2)에서 받아
-     `unity/Packages/com.vrmc.gltf`, `unity/Packages/com.vrmc.vrm`에 embedded 패키지로 넣어 주세요
-     (`packages-lock.json`이 이 두 폴더를 `file:` 경로로 참조합니다).
-1. **Unity 라이브러리 export** (Unity 코드를 바꿨을 때만 필요)
-   - Unity 에디터 메뉴 **VRMDroid > Export Android Library**, 또는 에디터를 닫은 상태에서 아래 명령을 실행합니다.
-     ```bash
-     "C:/Program Files/Unity/Hub/Editor/6000.6.3f1/Editor/Unity.exe" -batchmode -quit -projectPath unity -executeMethod VrmDroid.Editor.AndroidExport.ExportFromCommandLine -logFile unity/Logs/export.log
-     ```
-   - 결과물은 `unity/Builds/AndroidExport/unityLibrary`에 생기고, `settings.gradle.kts`가 자동으로 포함합니다.
-2. **앱 빌드·설치**
-   ```bash
-   ./gradlew :app:installUnityDebug
-   ```
-   - 앱에는 두 가지 빌드 변형(flavor)이 있습니다.
-     - `unity`: 아바타 미리보기 포함. Unity export가 있을 때만 생깁니다.
-     - `stub`: Unity 없이 랜드마크 화면만 있는 빌드. `com.ouor.vrmdroid.stub`으로 따로 설치되며 `./gradlew :app:installStubDebug`로 빌드합니다.
-   MediaPipe 모델(`face_landmarker.task`, 버전 1 고정)은 첫 빌드 때 `app/build/generated/mlmodel`로 내려받고
-   SHA-256을 검증합니다. 테스트는 `./gradlew :app:testUnityDebugUnitTest`(Unity export가 없으면 `testStubDebugUnitTest`).
+---
 
-## 사용법
+## 🛠️ 개발자 노트
 
-처음 실행하면 단계별 안내가 나옵니다: 환영 → 카메라 허용 → 아바타(VRM) 고르기 → 어디서 쓸지(PC / 폰만) → 준비 완료.
-끝나면 메인 화면에서 **정면 맞추기**가 자동으로 진행됩니다.
+여기부터는 앱을 직접 빌드하거나 고치려는 분을 위한 내용이에요.
 
-### 메인 화면
-- 아바타가 화면 전체에 보이고, 위쪽 **상태 알약**이 지금 상태를 한 줄로 알려 줍니다 (🟢 PC 연결됨 / 🟡 PC 연결을 기다려요 / 🔴 얼굴이 안 보여요). 누르면 자세한 상태, 폰 주소(복사), **PC와 연결하기**가 나옵니다.
-- 아래 큰 버튼 하나로 **시작하기 / 멈추기**. 그 위에 **정면 맞추기**(3초 가이드), **표정 조절**(아바타를 보면서 감도 조절), **아바타 바꾸기**.
-- 오른쪽 위 눈 아이콘 = **화면 깨끗하게**(버튼을 모두 숨김, 화면을 탭하면 다시 나옴).
-- 아바타는 드래그로 회전, 두 손가락으로 확대/축소.
-
-### PC와 연결하기 (상태 알약 → PC와 연결하기, 또는 설정)
-프로그램을 고르면 그에 맞는 순서와 폰 주소(복사 버튼)가 나오고, 연결되는 순간 "연결됐어요"로 바뀝니다.
-- **VSeeFace / VNyan / Warudo (아이폰 트래킹 방식, 기본)**: PC 프로그램의 iFacialMocap 받기를 켜고 폰 주소를 입력합니다. PC가 연결하면 앱이 PC 주소를 저절로 알아냅니다.
-- **VMC 방식**: PC 프로그램의 VMC 받기를 켜고(포트 39539), 앱에 PC 주소를 입력합니다. 머리·목·눈 회전, 표정(기본 표정 + 퍼펙트 싱크), 머리 위치(root)를 보냅니다.
-
-### 설정
-PC 연결 / 내 표정 / 화면 / 고급(접힘) 순서입니다. 고급에는 현재 보내는 방식에 해당하는 항목만 나옵니다
-(고개 방향 반대로, 포트, 보내는 횟수, VMC 세부 항목, 그래픽 가속). 맨 아래 **기본값으로 되돌리기**.
-
-## 샘플 아바타
-처음 실행할 때 내 VRM이 없으면 샘플 아바타 *Sendagaya Shibu*(VRoid Studio 샘플, CC0)를 보여 줍니다.
-파일은 저장소에 넣지 않고 빌드할 때 [madjin/vrm-samples](https://github.com/madjin/vrm-samples)에서 내려받아 SHA-256으로 확인합니다.
-메인 화면의 "내 아바타로 바꾸기"로 언제든 바꿀 수 있습니다.
-
-## VRoid Studio에 대해
-VRoid Studio는 모델을 만드는 도구이고 외부 트래킹 입력을 받지 않습니다.
-VRoid로 만든 VRM을 VSeeFace 등에 불러온 뒤 이 앱의 데이터를 받으면 됩니다.
-
-## 알려진 한계
-- MediaPipe에는 `tongueOut`이 없어 항상 0입니다.
-- 눈동자 방향은 eyeLook* 블렌드셰이프에서 추정합니다(최대 ±25°).
-- VMC에서는 머리 이동을 root 위치(`/VMC/Ext/Root/Pos`)로 보냅니다. VSeeFace가 하체 트래킹을 직접 하도록 설정돼 있으면 root 위치는 적용되지 않습니다.
+- 빌드 방법과 구조: [docs/BUILDING.md](docs/BUILDING.md)
+- 쓰인 기술
+  - 앱: Kotlin, CameraX
+  - 얼굴 인식: MediaPipe Face Landmarker
+  - 아바타 미리 보기: Unity 6 (UniVRM)
+  - 보내는 방식: iFacialMocap, VMC 프로토콜
+- 라이선스: [MIT](LICENSE). 샘플 아바타 *Sendagaya Shibu*는 VRoid Studio 샘플 모델(CC0)이에요.

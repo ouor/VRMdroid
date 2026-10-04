@@ -33,9 +33,9 @@ local.properties
 /.claude/*.lock
 /.claude/settings.local.json
 
-# UniVRM is installed locally as embedded packages (not tracked; see README)
+# UniVRM is installed locally as embedded packages (not tracked; see docs/BUILDING.md)
 /unity/Packages/com.vrmc.gltf
 /unity/Packages/com.vrmc.vrm
 
 # Local review notes and screenshots
-/docs
+/notes

@@ -28,7 +28,7 @@ rootProject.name = "vrmdroid"
 include(":app")
 
 // The Unity player module is produced by exporting the project in unity/ (VRMDroid > Export
-// Android Library, see README.md). Without it only the app's "stub" flavor (no avatar) exists.
+// Android Library, see docs/BUILDING.md). Without it only the app's "stub" flavor (no avatar) exists.
 val unityLibraryDir = file("unity/Builds/AndroidExport/unityLibrary")
 val unityExported = unityLibraryDir.resolve("build.gradle").exists() || unityLibraryDir.resolve("build.gradle.kts").exists()
 if (unityExported) {
