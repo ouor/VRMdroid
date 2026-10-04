@@ -21,14 +21,18 @@ enum class ThermalLevel(
 
 /**
  * Picks the [ThermalLevel] from Android's thermal headroom (1.0 = the device starts throttling)
- * and thermal status. Steps up as soon as a threshold is crossed, but steps down only after the
- * reading has been [HYSTERESIS] below it for a while, so the preview doesn't flicker between
- * levels. Pure logic; [TrackingService] feeds it every few seconds.
+ * and thermal status. Steps up when the system reports a thermal status, or when headroom crosses
+ * a threshold on two readings in a row (one-off spikes, like the forecast right after the camera
+ * and the avatar start up, don't count). Steps down only after the reading has been [HYSTERESIS]
+ * below the threshold for a while, so the preview doesn't flicker between levels. Pure logic;
+ * [TrackingService] feeds it every few seconds.
  */
 class ThermalGovernor {
     var level = ThermalLevel.NORMAL
         private set
     private var calmReadings = 0
+    /** Level the previous reading asked for, to confirm a step up from headroom. */
+    private var lastTarget = ThermalLevel.NORMAL
 
     /**
      * [headroom] may be NaN when the device doesn't report it; [status] is a
@@ -36,9 +40,16 @@ class ThermalGovernor {
      */
     fun update(headroom: Float, status: Int): Boolean {
         val target = levelFor(headroom, status, margin = 0f)
+        val byStatus = levelFor(Float.NaN, status, margin = 0f)
         val previous = level
+        val confirmed = minOf(target, lastTarget)
+        lastTarget = target
         when {
-            target > level -> { level = target; calmReadings = 0 }
+            target > level -> {
+                calmReadings = 0
+                val up = maxOf(byStatus, confirmed)
+                if (up > level) level = up
+            }
             target < level -> {
                 // Only count readings that are clearly below the current level's threshold.
                 if (levelFor(headroom, status, margin = HYSTERESIS) < level) calmReadings++ else calmReadings = 0
