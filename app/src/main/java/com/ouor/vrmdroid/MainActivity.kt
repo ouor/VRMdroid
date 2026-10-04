@@ -55,6 +55,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * The stage: the avatar fills the screen; a status pill on top and one big button at the bottom.
@@ -196,8 +197,11 @@ class MainActivity : AppCompatActivity(), UnityActivitySupport {
         if (intent.getBooleanExtra(EXTRA_CALIBRATE, false)) {
             intent.removeExtra(EXTRA_CALIBRATE)
             lifecycleScope.launch {
-                TrackingHub.status.first { it.running }
-                runCalibration()
+                // The camera can fail to start (permission revoked, camera busy); don't spring the
+                // guide on the user minutes later.
+                val started = withTimeoutOrNull(CALIBRATE_WAIT_MS) { TrackingHub.status.first { it.running } }
+                if (started != null) runCalibration()
+                else Toast.makeText(this@MainActivity, R.string.calib_later, Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -423,6 +427,7 @@ class MainActivity : AppCompatActivity(), UnityActivitySupport {
     companion object {
         const val EXTRA_CALIBRATE = "calibrate"
         private const val LANDSCAPE_PANEL_DP = 440
+        private const val CALIBRATE_WAIT_MS = 10_000L
         private const val LANDSCAPE_PANEL_FADE_DP = 72
     }
 

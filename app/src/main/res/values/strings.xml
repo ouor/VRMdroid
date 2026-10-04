@@ -42,6 +42,7 @@
     <string name="calib_no_face">얼굴이 화면에 보이도록 폰을 맞춰 주세요</string>
     <string name="calib_done">정면을 맞췄어요</string>
     <string name="calib_need_start">먼저 \'시작하기\'를 눌러 주세요</string>
+    <string name="calib_later">카메라가 켜지면 \'정면 맞추기\'를 눌러 주세요</string>
 
     <!-- Status sheet -->
     <string name="status_title">지금 상태</string>

@@ -15,6 +15,9 @@ object AvatarStore {
 
     private const val SAMPLE_ASSET = "sample_avatar.vrm"
     private const val SAMPLE_MARKER = "avatar.sample"
+    /** The avatar before the last import; Unity moves it back if the new file fails to load. */
+    const val PREVIOUS_FILE_NAME = "avatar.prev.vrm"
+    const val PREVIOUS_SAMPLE_MARKER = "avatar.prev.sample"
 
     fun file(context: Context): File = File(context.getExternalFilesDir(null), FILE_NAME)
 
@@ -45,16 +48,24 @@ object AvatarStore {
         val tmp = File(dir, "$FILE_NAME.tmp")
         context.contentResolver.openInputStream(uri).use { input ->
             requireNotNull(input) { context.getString(R.string.error_file_open) }
-            val header = ByteArray(4)
-            tmp.outputStream().use { out ->
-                val n = input.readNBytes(header, 0, header.size)
-                require(n == 4 && String(header, Charsets.US_ASCII) == "glTF") { context.getString(R.string.error_not_vrm) }
-                out.write(header)
-                input.copyTo(out)
-            }
+            tmp.outputStream().use { out -> input.copyTo(out) }
         }
-        moveIntoPlace(tmp, file(context))
-        File(dir, SAMPLE_MARKER).delete()
+        if (!VrmCheck.isVrm(tmp)) {
+            tmp.delete()
+            throw IllegalArgumentException(context.getString(R.string.error_not_vrm))
+        }
+        val current = file(context)
+        val sampleMarker = File(dir, SAMPLE_MARKER)
+        if (current.exists()) {
+            val previous = File(dir, PREVIOUS_FILE_NAME)
+            previous.delete()
+            current.renameTo(previous)
+            val previousMarker = File(dir, PREVIOUS_SAMPLE_MARKER)
+            previousMarker.delete()
+            if (sampleMarker.exists()) sampleMarker.renameTo(previousMarker)
+        }
+        sampleMarker.delete()
+        moveIntoPlace(tmp, current)
         return name
     }
 

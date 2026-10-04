@@ -14,6 +14,10 @@ namespace VrmDroid
     public sealed class AvatarController : MonoBehaviour
     {
         public const string AvatarFileName = "avatar.vrm";
+        // Kept in step with AvatarStore on the Android side.
+        const string PreviousFileName = "avatar.prev.vrm";
+        const string SampleMarker = "avatar.sample";
+        const string PreviousSampleMarker = "avatar.prev.sample";
 
         [Tooltip("Editor/testing override. Empty = Application.persistentDataPath/avatar.vrm (where the host app stores it).")]
         [SerializeField] string vrmPathOverride = "";
@@ -49,6 +53,7 @@ namespace VrmDroid
         readonly System.Collections.Generic.List<ExpressionKey> _keyScratch = new System.Collections.Generic.List<ExpressionKey>();
         DateTime _loadedWriteTime = DateTime.MinValue;
         bool _loading;
+        bool _restoredNotice;
         float _nextFileCheck;
 
         string VrmPath => string.IsNullOrEmpty(vrmPathOverride)
@@ -127,18 +132,63 @@ namespace VrmDroid
                 _loadedWriteTime = writeTime;
                 Setup(instance);
                 Status = "";
+                if (_restoredNotice)
+                {
+                    _restoredNotice = false;
+                    StartCoroutine(ShowNotice("새 아바타를 불러오지 못해서 이전 아바타로 돌아왔어요."));
+                }
                 AvatarLoaded?.Invoke(instance);
             }
             catch (Exception e)
             {
                 Debug.LogException(e);
-                Status = "아바타를 불러오지 못했어요.\n다른 VRM 파일로 다시 시도해 주세요.";
                 _loadedWriteTime = writeTime; // don't retry the same broken file every second
+                if (RestorePrevious(path))
+                {
+                    // The restored file has its own write time, so the next check loads it.
+                    _restoredNotice = true;
+                    Status = "";
+                }
+                else
+                {
+                    Status = "아바타를 불러오지 못했어요.\n다른 VRM 파일로 다시 시도해 주세요.";
+                }
             }
             finally
             {
                 _loading = false;
             }
+        }
+
+        /// <summary>
+        /// Puts back the avatar the host app set aside on import (avatar.prev.vrm), so a broken
+        /// file doesn't leave the stage empty. Returns false when there is nothing to restore.
+        /// </summary>
+        static bool RestorePrevious(string path)
+        {
+            var dir = Path.GetDirectoryName(path);
+            var previous = Path.Combine(dir, PreviousFileName);
+            if (!File.Exists(previous)) return false;
+            try
+            {
+                File.Delete(path);
+                File.Move(previous, path);
+                var marker = Path.Combine(dir, PreviousSampleMarker);
+                if (File.Exists(marker)) File.Move(marker, Path.Combine(dir, SampleMarker));
+                return true;
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+                return false;
+            }
+        }
+
+        System.Collections.IEnumerator ShowNotice(string message)
+        {
+            Status = message;
+            yield return new WaitForSecondsRealtime(4f);
+            if (Status == message) Status = "";
         }
 
         void Setup(Vrm10Instance instance)
