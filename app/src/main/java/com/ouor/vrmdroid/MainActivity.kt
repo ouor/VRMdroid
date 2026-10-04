@@ -397,7 +397,7 @@ class MainActivity : AppCompatActivity(), UnityActivitySupport {
                 guide.progress = held / holdMs.toFloat()
                 guide.countdown = 3 - (held * 3 / holdMs).toInt().coerceAtMost(2)
             }
-            TrackingHub.calibrationRequested = true
+            TrackingHub.requestCalibration()
             guide.mode = CalibrationGuideView.Mode.DONE
             delay(900)
             guide.visibility = View.GONE

@@ -48,8 +48,11 @@ object TrackingHub {
     /** Emits the PC's address when a PC app newly connects; drives the "PC를 찾았어요" card. */
     val pcFound: SharedFlow<String> = _pcFound.asSharedFlow()
 
-    /** Set by the UI; consumed by the service on the next frame. */
-    @Volatile var calibrationRequested = false
+    private val _calibrationRequests = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+    /** "Look straight ahead now" from the UI; the running service re-zeroes on its next frame. */
+    val calibrationRequests: SharedFlow<Unit> = _calibrationRequests.asSharedFlow()
+
+    fun requestCalibration() { _calibrationRequests.tryEmit(Unit) }
 
     internal fun updateStatus(transform: (TrackingStatus) -> TrackingStatus) = _status.update(transform)
     internal fun publish(result: TrackingResult?) { _latest.value = result }
