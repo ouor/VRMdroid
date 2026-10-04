@@ -20,6 +20,7 @@ data class TrackingConfig(
     val vmcSendVrmPresets: Boolean = true,
     val vmcSendPerfectSync: Boolean = true,
     val vmcSendEmotions: Boolean = false,
+    val vmcSendArmPose: Boolean = true,
 ) {
     companion object {
         fun from(s: AppSettings) = TrackingConfig(
@@ -37,6 +38,7 @@ data class TrackingConfig(
             vmcSendVrmPresets = s.vmcSendVrmPresets,
             vmcSendPerfectSync = s.vmcSendPerfectSync,
             vmcSendEmotions = s.vmcSendEmotions,
+            vmcSendArmPose = s.vmcSendArmPose,
         )
     }
 }

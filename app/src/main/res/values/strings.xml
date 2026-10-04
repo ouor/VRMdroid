@@ -158,6 +158,8 @@
     <string name="set_vmc_perfect_sync_desc">아바타가 52가지 표정을 지원할 때 켜 주세요</string>
     <string name="set_vmc_emotions">감정 표정 자동으로</string>
     <string name="set_vmc_emotions_desc">웃음·화남·슬픔·놀람을 얼굴에서 알아내요</string>
+    <string name="set_vmc_arm_pose">팔 내린 자세 보내기</string>
+    <string name="set_vmc_arm_pose_desc">받는 프로그램에서 팔이 T자로 펴질 때 켜 두세요. 팔을 따로 추적하고 있다면 꺼 주세요</string>
     <string name="set_send_rate">보내는 횟수</string>
     <string name="set_send_rate_desc">1초에 몇 번 보낼지예요. 보통 60 그대로 두면 돼요</string>
     <string name="set_gpu">그래픽 가속 쓰기</string>

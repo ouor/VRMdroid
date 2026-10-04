@@ -1,6 +1,7 @@
 package com.ouor.vrmdroid.output
 
 import android.os.SystemClock
+import com.ouor.vrmdroid.processing.Quat
 import com.ouor.vrmdroid.processing.TrackingResult
 import com.ouor.vrmdroid.processing.VrmPresets
 import com.ouor.vrmdroid.settings.TrackingConfig
@@ -16,7 +17,8 @@ import java.net.InetSocketAddress
  *
  * Sends head/neck/eye bone rotations, head translation as a root offset, and blendshape values
  * (VRM presets and/or ARKit perfect-sync names). Bone positions are sent as zero; common
- * receivers (VSeeFace, VNyan, Warudo) only apply rotations for non-root bones.
+ * receivers (VSeeFace, VNyan, Warudo) only apply rotations for non-root bones. Without arm data
+ * those receivers leave the arms in a T-pose, so a relaxed arm pose can be sent as well.
  */
 class VmcSender(private val host: String, private val port: Int) : TrackingSender {
 
@@ -62,6 +64,9 @@ class VmcSender(private val host: String, private val port: Int) : TrackingSende
         bone("Head", headLocal)
         bone("LeftEye", avatar.leftEye)
         bone("RightEye", avatar.rightEye)
+        if (config.vmcSendArmPose) {
+            for ((name, q) in ARM_REST_POSE) bone(name, q)
+        }
         flush()
 
         osc.beginBundle()
@@ -114,6 +119,19 @@ class VmcSender(private val host: String, private val port: Int) : TrackingSende
     companion object {
         private const val NECK_SHARE = 0.3f
         private const val MAX_BUNDLE_BYTES = 1200
+        private const val ARM_DOWN_DEG = 72f
+        private const val ELBOW_BEND_DEG = 12f
+
+        /**
+         * Local rotations from the VRM T-pose, matching the preview's rest pose (AvatarController
+         * ApplyRestPose). Avatar faces +Z with its right side on +X, so roll lowers the arms.
+         */
+        val ARM_REST_POSE = listOf(
+            "LeftUpperArm" to Quat.fromUnityEuler(0f, 0f, ARM_DOWN_DEG),
+            "RightUpperArm" to Quat.fromUnityEuler(0f, 0f, -ARM_DOWN_DEG),
+            "LeftLowerArm" to Quat.fromUnityEuler(0f, ELBOW_BEND_DEG, 0f),
+            "RightLowerArm" to Quat.fromUnityEuler(0f, -ELBOW_BEND_DEG, 0f),
+        )
 
         /** Rotation `t` of the way from identity to q (q assumed normalized, w >= 0 path). */
         fun slerpFromIdentity(q: FloatArray, t: Float): FloatArray {

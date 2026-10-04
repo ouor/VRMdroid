@@ -123,3 +123,25 @@ class PreviewPacketLayoutTest {
         assertEquals(VrmPresets.Preset.entries.size, csPresets.size)
     }
 }
+
+class VmcArmPoseTest {
+    /** Rotates v by unit quaternion q (x, y, z, w). */
+    private fun rotate(q: FloatArray, v: FloatArray): FloatArray {
+        val (x, y, z, w) = q.toList()
+        val tx = 2 * (y * v[2] - z * v[1]); val ty = 2 * (z * v[0] - x * v[2]); val tz = 2 * (x * v[1] - y * v[0])
+        return floatArrayOf(
+            v[0] + w * tx + (y * tz - z * ty),
+            v[1] + w * ty + (z * tx - x * tz),
+            v[2] + w * tz + (x * ty - y * tx),
+        )
+    }
+
+    @Test fun upperArmsPointDown() {
+        val pose = com.ouor.vrmdroid.output.VmcSender.ARM_REST_POSE.toMap()
+        // Avatar faces +Z, so its right arm points along +X and its left arm along -X in the T-pose.
+        val right = rotate(pose.getValue("RightUpperArm"), floatArrayOf(1f, 0f, 0f))
+        val left = rotate(pose.getValue("LeftUpperArm"), floatArrayOf(-1f, 0f, 0f))
+        assertTrue("right arm $right", right[1] < -0.9f && right[0] > 0f)
+        assertTrue("left arm $left", left[1] < -0.9f && left[0] < 0f)
+    }
+}
