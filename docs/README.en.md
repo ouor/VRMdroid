@@ -19,31 +19,28 @@
 > All face tracking happens on the phone itself, and only expression values are sent to your PC.
 > The app doesn't connect to any server on the internet.
 
-> [!IMPORTANT]
-> The app's interface is currently in Korean only. Below, each button or option is given in English followed by its exact Korean label in parentheses, so you can find it on screen.
-
 ## 📸 How it works
 
 1. **Pick an avatar**: Choose a VRM file on your phone. Don't have one yet? You can try the app with the sample avatar first.
 2. **Pick your PC program**: Choose the program you use (VSeeFace, VNyan or Warudo), and the app shows you which menus to click on your PC and which address to enter.
-3. **Start**: Put your phone in front of your face and tap **Start (시작하기)**. Your avatar on the PC will copy your expressions.
+3. **Start**: Put your phone in front of your face and tap **Start**. Your avatar on the PC will copy your expressions.
 
 <div align="center">
 <img src="images/screen-2.jpg" width="30%" alt="Connect to PC: VSeeFace connection steps and the phone's address">
 <img src="images/screen-1.jpg" width="30%" alt="Main screen: the avatar on the phone copying the user's expressions">
-<img src="images/screen-3.jpg" width="30%" alt="Adjust expressions: sliders for blinking, mouth movement and smoothness">
+<img src="images/screen-3.jpg" width="30%" alt="Expressions: sliders for Blinking, Mouth movement and Smoothing">
 </div>
-<div align="center"><sub>Connect to PC · Main screen · Adjust expressions</sub></div>
+<div align="center"><sub>Connect to PC · Main screen · Expressions</sub></div>
 
 ## ✨ What it can do
 
 - **The same expressions as an iPhone**: Sends the same 52 expressions as iPhone tracking, so avatars already set up for iPhone work as they are.
 - **Preview on your phone**: The avatar copies your expressions on the phone screen too, so you can check that tracking works well before connecting to your PC.
 - **Connection guide**: Pick your PC program and the app walks you through each step, then tells you right away once it's connected.
-- **Adjust expressions (표정 조절)**: Tune blink and mouth-open sensitivity and how smooth the movement is, while watching your avatar.
-- **Center (정면 맞추기)**: Look at the screen for 3 seconds and your current pose is set as facing forward.
-- **Live debug console (실시간 디버깅 콘솔)**: See the expression values sent to your PC and the send rate right on the main screen. Turn it on in Settings (설정).
-- **Clean screen (화면 깨끗하게)**: Hides all the buttons so you can record or show your phone screen as is.
+- **Expressions**: Tune blink and mouth-open sensitivity and how smooth the movement is, while watching your avatar.
+- **Recenter**: Look at the screen for 3 seconds and your current pose is set as facing forward.
+- **Live debug console**: See the expression values sent to your PC and the send rate right on the main screen. Turn it on in Settings.
+- **Clean view**: Hides all the buttons so you can record or show your phone screen as is.
 - **Leave it running**: When you step away, the app dims the screen and lowers the brightness to save battery. Tracking and sending to your PC keep going the whole time.
 
 ### Great for when
@@ -58,8 +55,8 @@
 | Program | What to pick in the app | What to do in the PC program |
 |---|---|---|
 | VSeeFace | VSeeFace | In Settings → General settings, turn on the iFacialMocap receiver and enter the phone's address |
-| VNyan, Warudo, etc. | VNyan, Warudo, etc. (VNyan · Warudo 등) | Choose iPhone / iFacialMocap as the tracking method and enter the phone's address |
-| VMagicMirror and other programs that receive VMC | Programs that receive VMC (VMC로 받는 프로그램) | Turn on VMC receiving, set the port to 39539, then enter the PC's address in the app |
+| VNyan, Warudo, etc. | VNyan, Warudo, and more | Choose iPhone / iFacialMocap as the tracking method and enter the phone's address |
+| VMagicMirror and other programs that receive VMC | Apps that receive VMC | Turn on VMC receiving, set the port to 39539, then enter the PC's address in the app |
 
 Your phone and PC need to be on the **same Wi-Fi**. Menu names may differ slightly depending on the program version.
 
@@ -75,6 +72,7 @@ Your phone and PC need to be on the **same Wi-Fi**. Menu names may differ slight
 
 - An Android 12 or later, 64-bit (arm64) phone
 - The same Wi-Fi as your PC
+- App languages: Korean, English, Japanese and Simplified Chinese. The app follows your phone's language and shows English for any other language. On Android 13 or later, you can also pick it separately under "App languages" in Settings.
 - On a Dimensity 8300 phone, it sends expressions 25 to 30 times per second. This varies with your phone's performance and temperature.
 
 ## 🔒 Privacy
@@ -94,7 +92,7 @@ Your phone and PC need to be on the **same Wi-Fi**. Menu names may differ slight
 | The avatar on my PC doesn't move | Check that your phone and PC are on the same Wi-Fi. Guest and public Wi-Fi networks often block devices from talking to each other. |
 | The PC program can't find my phone | Check that you allowed "Private networks" in the Windows Firewall prompt that appeared the first time you opened the PC program. If you already denied it, you can allow it in Windows Security → Firewall & network protection. |
 | I want to see the connection status | Tap the status indicator at the top of the app to see what it's waiting for and your phone's address. |
-| The avatar isn't facing forward | Put your phone in front of your face and tap **Center (정면 맞추기)**. |
+| The avatar isn't facing forward | Put your phone in front of your face and tap **Recenter**. |
 | My phone is getting hot | For long streams, we recommend plugging in the charger and taking the phone out of its case. |
 
 If the problem continues, please open an [issue](https://github.com/ouor/VRMdroid/issues) with your phone model and PC program.
