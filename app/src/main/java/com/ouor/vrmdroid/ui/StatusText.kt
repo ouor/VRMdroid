@@ -15,6 +15,8 @@ object StatusText {
 
     /** The single most important thing right now, for the pill at the top of the screen. */
     fun pill(context: Context, s: TrackingStatus): Pill = when {
+        // A real failure must never hide behind "no face".
+        s.error != null -> Pill(context.getString(R.string.pill_error), R.color.status_error)
         !s.running -> Pill(context.getString(R.string.pill_off), R.color.status_idle)
         !s.faceDetected -> Pill(context.getString(R.string.pill_no_face), R.color.status_error)
         s.pcLink == PcLink.CONNECTED -> Pill(context.getString(R.string.pill_pc_connected), R.color.status_ok)
@@ -24,6 +26,7 @@ object StatusText {
     }
 
     fun tracking(context: Context, s: TrackingStatus): Pill = when {
+        s.error != null -> Pill(s.error, R.color.status_error)
         !s.running -> Pill(context.getString(R.string.status_off), R.color.status_idle)
         !s.faceDetected -> Pill(context.getString(R.string.status_no_face), R.color.status_error)
         s.fps >= 24f -> Pill(context.getString(R.string.status_quality_good), R.color.status_ok)

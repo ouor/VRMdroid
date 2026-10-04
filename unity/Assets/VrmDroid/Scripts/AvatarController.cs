@@ -39,7 +39,7 @@ namespace VrmDroid
         readonly Dictionary<ExpressionKey, float> _weights = new Dictionary<ExpressionKey, float>();
         ExpressionKey?[] _perfectSyncKeys = Array.Empty<ExpressionKey?>();
         Vector3 _rootBasePosition;
-        DateTime _loadedWriteTime;
+        DateTime _loadedWriteTime = DateTime.MinValue;
         bool _loading;
         float _nextFileCheck;
 
@@ -72,7 +72,9 @@ namespace VrmDroid
                 return;
             }
             var writeTime = File.GetLastWriteTimeUtc(path);
-            if (Instance != null && writeTime == _loadedWriteTime) return;
+            // Skip files we've already tried, whether that load succeeded or failed; otherwise a
+            // broken file would be re-read and re-parsed every second.
+            if (writeTime == _loadedWriteTime) return;
             _ = LoadAsync(path, writeTime);
         }
 
