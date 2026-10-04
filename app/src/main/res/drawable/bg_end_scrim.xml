@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Landscape side panel: dark at the screen edge, fading toward the avatar. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <gradient android:angle="180" android:startColor="#F20F0E17" android:centerColor="#B30F0E17" android:endColor="#000F0E17" />
+</shape>
