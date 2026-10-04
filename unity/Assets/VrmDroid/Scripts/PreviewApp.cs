@@ -46,6 +46,11 @@ namespace VrmDroid
         const int InteractiveFps = 60;
         const int LowPowerFps = 5;
 
+        // Rendered frame rate, logged next to the host's VrmPerf line (adb logcat -s Unity).
+        const float PerfLogSeconds = 5f;
+        float _perfWindowStart;
+        int _perfFrames;
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Bootstrap()
         {
@@ -110,6 +115,17 @@ namespace VrmDroid
             // Avatar faces +Z, so "in front" is on the +Z side looking back toward -Z.
             var rotation = Quaternion.Euler(_orbitPitch, 180f + _orbitYaw, 0f);
             viewCamera.transform.SetPositionAndRotation(_focus - rotation * Vector3.forward * distance, rotation);
+            LogFrameRate();
+        }
+
+        void LogFrameRate()
+        {
+            _perfFrames++;
+            var elapsed = Time.unscaledTime - _perfWindowStart;
+            if (elapsed < PerfLogSeconds) return;
+            Debug.Log($"[VrmPerf] unity fps={_perfFrames / elapsed:F1} target={Application.targetFrameRate}");
+            _perfFrames = 0;
+            _perfWindowStart = Time.unscaledTime;
         }
 
         void HandleInput()
