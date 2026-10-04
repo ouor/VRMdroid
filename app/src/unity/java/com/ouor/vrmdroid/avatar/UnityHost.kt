@@ -13,7 +13,7 @@ import com.unity3d.player.UnityPlayerForActivityOrService
 
 /**
  * Embeds the Unity avatar player as a View inside the host activity (compiled only when the
- * exported unityLibrary is present; see app/src/nounity for the stub).
+ * exported unityLibrary is present; see app/src/stub for the stub).
  *
  * Unity's native code looks the player up through the activity, so the host activity must
  * implement [UnityActivitySupport].

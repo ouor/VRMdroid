@@ -19,6 +19,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -45,6 +46,7 @@ class OnboardingActivity : AppCompatActivity() {
     private lateinit var primary: MaterialButton
     private lateinit var secondary: MaterialButton
     private var step = Step.WELCOME
+    private val state by lazy { ViewModelProvider(this)[StepViewModel::class.java] }
     /** Steps actually shown; the camera step is left out when permission was already given. */
     private lateinit var steps: List<Step>
 
@@ -116,21 +118,13 @@ class OnboardingActivity : AppCompatActivity() {
             }
         })
         steps = Step.entries.filter { it != Step.CAMERA || !hasCamera() }
-        val restored = savedInstanceState?.getString(STATE_STEP)?.let { name -> Step.entries.firstOrNull { it.name == name } }
+        val restored = state.step?.let { name -> Step.entries.firstOrNull { it.name == name } }
         go(restored ?: Step.WELCOME)
-    }
-
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        outState.putString(STATE_STEP, step.name)
-    }
-
-    private companion object {
-        const val STATE_STEP = "step"
     }
 
     private fun go(next: Step) {
         step = if (next in steps) next else steps[(steps.indexOfFirst { it.ordinal > next.ordinal }).coerceAtLeast(0)]
+        state.step = step.name
         body.removeAllViews()
         progress.text = "${steps.indexOf(step) + 1} / ${steps.size}"
         secondary.visibility = View.GONE

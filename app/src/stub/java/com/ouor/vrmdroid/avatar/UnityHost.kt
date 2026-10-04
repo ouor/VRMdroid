@@ -4,7 +4,7 @@ import android.app.Activity
 import android.content.res.Configuration
 import android.view.View
 
-/** Stub used when the Unity library hasn't been exported; see app/src/unity for the real one. */
+/** The "stub" flavor: no Unity player, so no avatar view. See app/src/unity for the real one. */
 class UnityHost(@Suppress("UNUSED_PARAMETER") activity: Activity) {
     val view: View? = null
 
