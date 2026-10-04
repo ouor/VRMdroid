@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Android 11 and lower. The avatar VRM can be tens of MB, which would exceed the 25MB
-     backup quota and make the whole backup get skipped. -->
+<!-- Android 11 and lower. Only settings are backed up: with an <include>, everything else is
+     left out, including the avatar VRM (tens of MB, over the 25MB backup quota). -->
 <full-backup-content>
     <include domain="sharedpref" path="." />
-    <exclude domain="external" path="." />
 </full-backup-content>
