@@ -35,6 +35,12 @@ class UnityHost(private val activity: Activity) {
     fun onResume() = player.onResume()
     fun onPause() = player.onPause()
 
+    /**
+     * Throttles rendering while the screen is dimmed. Cheaper to wake from than pausing the
+     * player, and the avatar keeps following the face in the meantime.
+     */
+    fun setLowPower(on: Boolean) = UnityPlayer.UnitySendMessage(UNITY_OBJECT, "SetLowPower", if (on) "1" else "0")
+
     /** Unity terminates the process here, so only call this when the app is really closing. */
     fun onDestroy() = player.destroy()
 
@@ -55,6 +61,9 @@ class UnityHost(private val activity: Activity) {
 
     companion object {
         const val AVAILABLE = true
+
+        /** The GameObject PreviewApp.Bootstrap creates. */
+        private const val UNITY_OBJECT = "VrmDroid"
     }
 }
 

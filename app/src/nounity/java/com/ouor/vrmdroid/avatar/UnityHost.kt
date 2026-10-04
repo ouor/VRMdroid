@@ -12,6 +12,7 @@ class UnityHost(@Suppress("UNUSED_PARAMETER") activity: Activity) {
     fun onStop() = Unit
     fun onResume() = Unit
     fun onPause() = Unit
+    fun setLowPower(@Suppress("UNUSED_PARAMETER") on: Boolean) = Unit
     fun onDestroy() = Unit
     fun onConfigurationChanged(@Suppress("UNUSED_PARAMETER") config: Configuration) = Unit
     fun onWindowFocusChanged(@Suppress("UNUSED_PARAMETER") hasFocus: Boolean) = Unit

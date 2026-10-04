@@ -37,6 +37,14 @@ namespace VrmDroid
         // After a two-finger gesture, ignore the remaining finger until all are lifted,
         // so lifting one finger doesn't make the view jump into an orbit.
         bool _multiTouchUntilRelease;
+        bool _lowPower;
+
+        // Tracking arrives at 15-30 Hz, so drawing faster than 30 fps only burns battery during a
+        // long stream. Touch gestures get 60 fps so orbiting stays smooth; the dimmed screen
+        // (nobody looking) gets a trickle that keeps the player alive for an instant wake-up.
+        const int IdleFps = 30;
+        const int InteractiveFps = 60;
+        const int LowPowerFps = 5;
         GUIStyle _style;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -51,7 +59,7 @@ namespace VrmDroid
 
         void Awake()
         {
-            Application.targetFrameRate = 60;
+            Application.targetFrameRate = IdleFps;
             Screen.sleepTimeout = SleepTimeout.NeverSleep;
             if (avatar == null) avatar = GetComponent<AvatarController>();
             if (viewCamera == null) viewCamera = Camera.main;
@@ -90,8 +98,15 @@ namespace VrmDroid
             distance = DefaultDistance;
         }
 
+        /// <summary>Called by the host app (UnitySendMessage) when the screen dims or wakes.</summary>
+        public void SetLowPower(string on) => _lowPower = on == "1";
+
         void Update()
         {
+            var touching = Touchscreen.current != null && Touchscreen.current.primaryTouch.press.isPressed;
+            var fps = _lowPower ? LowPowerFps : touching ? InteractiveFps : IdleFps;
+            if (Application.targetFrameRate != fps) Application.targetFrameRate = fps;
+
             HandleInput();
             // Avatar faces +Z, so "in front" is on the +Z side looking back toward -Z.
             var rotation = Quaternion.Euler(_orbitPitch, 180f + _orbitYaw, 0f);

@@ -8,12 +8,17 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.ServiceInfo
+import android.hardware.camera2.CameraCharacteristics
+import android.hardware.camera2.CameraManager
+import android.hardware.camera2.CaptureRequest
 import android.hardware.display.DisplayManager
 import android.net.wifi.WifiManager
 import android.os.SystemClock
 import android.util.Log
+import android.util.Range
 import android.util.Size
 import android.view.Display
+import androidx.camera.camera2.interop.Camera2Interop
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.CameraState
 import androidx.camera.core.ImageAnalysis
@@ -142,7 +147,7 @@ class TrackingService : LifecycleService() {
     }
 
     private fun bindCamera(provider: ProcessCameraProvider) {
-        val analysis = ImageAnalysis.Builder()
+        val builder = ImageAnalysis.Builder()
             .setResolutionSelector(
                 ResolutionSelector.Builder()
                     .setResolutionStrategy(
@@ -155,7 +160,12 @@ class TrackingService : LifecycleService() {
             )
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
             .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
-            .build()
+        // Auto exposure otherwise stretches frames in dim rooms and tracking drops to ~15 fps.
+        // A steady frame rate matters more to tracking than a brighter image.
+        frontCameraFpsRange()?.let {
+            Camera2Interop.Extender(builder).setCaptureRequestOption(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, it)
+        }
+        val analysis = builder.build()
         getSystemService(DisplayManager::class.java).getDisplay(Display.DEFAULT_DISPLAY)?.let { analysis.targetRotation = it.rotation }
         this.analysis = analysis
         analysis.setAnalyzer(analysisExecutor) { image ->
@@ -330,6 +340,21 @@ class TrackingService : LifecycleService() {
     }
 
     /**
+     * The front camera's auto-exposure range closest to a fixed 30 fps: highest upper bound up to
+     * 30, then the highest lower bound. Null when the camera can't be queried; CameraX then keeps
+     * its default.
+     */
+    private fun frontCameraFpsRange(): Range<Int>? = runCatching {
+        val manager = getSystemService(CameraManager::class.java)
+        val id = manager.cameraIdList.first {
+            manager.getCameraCharacteristics(it).get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_FRONT
+        }
+        val ranges = manager.getCameraCharacteristics(id).get(CameraCharacteristics.CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES)
+        ranges?.filter { it.upper <= TARGET_FPS }
+            ?.maxWithOrNull(compareBy<Range<Int>> { it.upper }.thenBy { it.lower })
+    }.onFailure { Log.w(TAG, "fps ranges unavailable", it) }.getOrNull()
+
+    /**
      * Wi-Fi power saving can hold outgoing UDP for 100ms+, especially with the screen dimmed.
      * A low-latency lock keeps the radio awake while tracking runs.
      */
@@ -393,6 +418,7 @@ class TrackingService : LifecycleService() {
         private const val NOTIFICATION_ID = 1
         private const val ACTION_STOP = "com.ouor.vrmdroid.STOP"
         private const val SEND_FAILURE_THRESHOLD = 30
+        private const val TARGET_FPS = 30
         private const val SEND_FAILURE_LOG_MS = 5000L
 
         fun start(context: Context) {
