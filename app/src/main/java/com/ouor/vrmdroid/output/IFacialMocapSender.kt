@@ -55,7 +55,10 @@ class IFacialMocapSender(
         val payload = text.toString()
         val bytes = payload.toByteArray(Charsets.US_ASCII)
         socket.send(DatagramPacket(bytes, bytes.size, dest))
-        SentDataMonitor.record(OutputProtocol.IFACIALMOCAP, "${dest.hostString}:$port", payload, result, bytes.size)
+        if (SentDataMonitor.enabled) {
+            val shown = if (SentDataMonitor.wantsPayload()) payload else null
+            SentDataMonitor.record(OutputProtocol.IFACIALMOCAP, "${dest.hostString}:$port", shown, result, bytes.size)
+        }
     }
 
     private fun listenForHandshake() {

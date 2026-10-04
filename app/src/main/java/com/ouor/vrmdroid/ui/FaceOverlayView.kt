@@ -37,8 +37,14 @@ class FaceOverlayView @JvmOverloads constructor(
         }
 
     private val density = resources.displayMetrics.density
-    private val pointPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(120, 220, 255) }
-    private val lostPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(110, 110, 110) }
+    private val pointPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.rgb(120, 220, 255)
+        strokeWidth = 2.4f * density
+        strokeCap = Paint.Cap.ROUND
+    }
+    private val lostPaint = Paint(pointPaint).apply { color = Color.rgb(110, 110, 110) }
+    /** Landmarks in view coordinates, reused so a redraw per frame allocates nothing. */
+    private var points = FloatArray(0)
     private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.WHITE
         textSize = 12f * density
@@ -66,16 +72,16 @@ class FaceOverlayView @JvmOverloads constructor(
         val scale = min(width.toFloat() / iw, height.toFloat() / ih)
         val ox = (width - iw * scale) / 2f
         val oy = (height - ih * scale) / 2f
-        val paint = if (r.subject.detected) pointPaint else lostPaint
-        val radius = 1.2f * density
         val lm = r.landmarks
+        if (points.size < lm.size) points = FloatArray(lm.size)
         var i = 0
         while (i + 1 < lm.size) {
-            val x = ox + (1f - lm[i]) * iw * scale
-            val y = oy + lm[i + 1] * ih * scale
-            canvas.drawCircle(x, y, radius, paint)
+            points[i] = ox + (1f - lm[i]) * iw * scale
+            points[i + 1] = oy + lm[i + 1] * ih * scale
             i += 2
         }
+        // One call for all ~478 points instead of a circle each.
+        canvas.drawPoints(points, 0, i, if (r.subject.detected) pointPaint else lostPaint)
 
         val s = r.subject
         if (compact) return
