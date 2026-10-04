@@ -1,18 +1,18 @@
 package com.ouor.vrmdroid.tracking
 
 import android.content.Context
-import android.graphics.Bitmap
 import android.os.SystemClock
 import android.os.Trace
 import android.util.Log
-import com.google.mediapipe.framework.image.BitmapImageBuilder
+import com.google.mediapipe.framework.image.ByteBufferImageBuilder
+import com.google.mediapipe.framework.image.MPImage
 import com.google.mediapipe.tasks.core.BaseOptions
 import com.google.mediapipe.tasks.core.Delegate
 import com.google.mediapipe.tasks.vision.core.RunningMode
 import com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarker
 import com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarkerResult
 import com.ouor.vrmdroid.processing.Rotation
-import java.util.concurrent.atomic.AtomicBoolean
+import java.nio.ByteBuffer
 
 /**
  * MediaPipe Face Landmarker backend. It natively outputs ARKit-named blendshapes (minus
@@ -21,10 +21,10 @@ import java.util.concurrent.atomic.AtomicBoolean
 class MediaPipeFaceTracker(context: Context, useGpu: Boolean) : FaceTracker {
 
     override var listener: ((FaceFrame) -> Unit)? = null
+    override var frameDone: (() -> Unit)? = null
     override val name: String
 
     private val landmarker: FaceLandmarker
-    private val busy = AtomicBoolean(false)
     @Volatile private var submittedAt = 0L
     private var lastTimestamp = -1L
     @Volatile private var frameSize = 0 to 0
@@ -67,44 +67,34 @@ class MediaPipeFaceTracker(context: Context, useGpu: Boolean) : FaceTracker {
         .setResultListener(::onResult)
         .setErrorListener { e ->
             Log.e(TAG, "Face landmarker error", e)
-            busy.set(false)
+            frameDone?.invoke()
         }
         .build()
 
-    override val isReady: Boolean
-        get() {
-            // Watchdog: if MediaPipe never answered (e.g. GPU context lost), don't stall forever.
-            if (busy.get() && SystemClock.uptimeMillis() - submittedAt > STALL_MS) {
-                Log.w(TAG, "No result for ${STALL_MS}ms; resubmitting")
-                busy.set(false)
-            }
-            return !busy.get()
-        }
-
-    override fun submit(bitmap: Bitmap, timestampMs: Long) {
-        // LIVE_STREAM queues internally; dropping while busy keeps latency at one frame.
-        if (!busy.compareAndSet(false, true)) return
+    override fun submit(pixels: ByteBuffer, width: Int, height: Int, timestampMs: Long) {
         // MediaPipe rejects non-increasing timestamps.
         val ts = if (timestampMs <= lastTimestamp) lastTimestamp + 1 else timestampMs
         lastTimestamp = ts
         submittedAt = SystemClock.uptimeMillis()
-        frameSize = bitmap.width to bitmap.height
-        val image = BitmapImageBuilder(bitmap).build()
+        frameSize = width to height
+        // MediaPipe copies the pixels into its own frame before detectAsync returns.
+        val image = ByteBufferImageBuilder(pixels, width, height, MPImage.IMAGE_FORMAT_RGBA).build()
         Trace.beginAsyncSection(TRACE_INFER, ts.toInt())
         try {
             landmarker.detectAsync(image, ts)
         } catch (e: Exception) {
             Log.e(TAG, "detectAsync failed", e)
-            busy.set(false)
+            Trace.endAsyncSection(TRACE_INFER, ts.toInt())
+            frameDone?.invoke()
         }
     }
 
     private fun onResult(result: FaceLandmarkerResult, @Suppress("UNUSED_PARAMETER") input: Any?) {
-        // Read per-frame fields before releasing `busy`: the next submit overwrites them.
+        // Read per-frame fields before frameDone: the next submit overwrites them.
         val elapsed = SystemClock.uptimeMillis() - submittedAt
         Trace.endAsyncSection(TRACE_INFER, result.timestampMs().toInt())
         val size = frameSize
-        busy.set(false)
+        frameDone?.invoke()
         listener?.invoke(convert(result, elapsed, size))
     }
 
@@ -170,13 +160,13 @@ class MediaPipeFaceTracker(context: Context, useGpu: Boolean) : FaceTracker {
 
     override fun close() {
         listener = null
+        frameDone = null
         landmarker.close()
     }
 
     companion object {
         private const val TAG = "MediaPipeFaceTracker"
         const val MODEL_ASSET = "face_landmarker.task"
-        private const val STALL_MS = 1000L
         private const val TRACE_INFER = "vrm.infer"
     }
 }
