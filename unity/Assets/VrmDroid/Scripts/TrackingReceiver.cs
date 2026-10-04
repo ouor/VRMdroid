@@ -81,12 +81,13 @@ namespace VrmDroid
         void Receive(Socket socket)
         {
             var buffer = new byte[2048]; // reused; packets are ~300 bytes
-            EndPoint any = new IPEndPoint(IPAddress.Any, 0);
             while (_running)
             {
                 try
                 {
-                    var length = socket.ReceiveFrom(buffer, ref any);
+                    // Receive rather than ReceiveFrom: the sender doesn't matter, and ReceiveFrom
+                    // allocates an endpoint per packet.
+                    var length = socket.Receive(buffer);
                     lock (_lock)
                     {
                         if (TrackingPacket.TryParse(buffer, length, _incoming) && AllFinite(_incoming))
