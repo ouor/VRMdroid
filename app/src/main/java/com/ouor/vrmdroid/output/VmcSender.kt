@@ -33,9 +33,13 @@ class VmcSender(private val host: String, private val port: Int) : TrackingSende
     /** Decoded view of this frame's OSC messages, built only while the console is shown. */
     private val decoded = StringBuilder(1024)
     private var frameBytes = 0
+    /** Whether this frame's payload text goes to the debug console. */
+    private var capture = false
+    private val monitorDestination = "$host:$port"
 
     override fun send(result: TrackingResult, config: TrackingConfig) {
         val avatar = result.avatar
+        capture = SentDataMonitor.wantsPayload()
         decoded.setLength(0)
         frameBytes = 0
         osc.beginBundle()
@@ -51,7 +55,7 @@ class VmcSender(private val host: String, private val port: Int) : TrackingSende
                 .f(p[0] * k).f(p[1] * k).f(p[2] * k)
                 .f(0f).f(0f).f(0f).f(1f)
                 .end()
-            if (SentDataMonitor.enabled) {
+            if (capture) {
                 decoded.append(String.format(java.util.Locale.US, "root(%.2f,%.2f,%.2f) ", p[0] * k, p[1] * k, p[2] * k))
             }
         }
@@ -83,12 +87,12 @@ class VmcSender(private val host: String, private val port: Int) : TrackingSende
         osc.message("/VMC/Ext/Blend/Apply").end()
         flush()
         if (SentDataMonitor.enabled) {
-            SentDataMonitor.record(OutputProtocol.VMC, "$host:$port", decoded.toString(), result, frameBytes)
+            SentDataMonitor.record(OutputProtocol.VMC, monitorDestination, if (capture) decoded.toString() else null, result, frameBytes)
         }
     }
 
     private fun bone(name: String, q: FloatArray) {
-        if (SentDataMonitor.enabled) {
+        if (capture) {
             decoded.append(name).append(String.format(java.util.Locale.US, "(%.2f,%.2f,%.2f,%.2f) ", q[0], q[1], q[2], q[3]))
         }
         osc.message("/VMC/Ext/Bone/Pos").s(name)
@@ -98,7 +102,7 @@ class VmcSender(private val host: String, private val port: Int) : TrackingSende
     }
 
     private fun blend(name: String, value: Float) {
-        if (SentDataMonitor.enabled && value >= 0.01f) {
+        if (capture && value >= 0.01f) {
             decoded.append(name).append(String.format(java.util.Locale.US, " %.2f ", value))
         }
         osc.message("/VMC/Ext/Blend/Val").s(name).f(value).end()

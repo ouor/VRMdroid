@@ -103,7 +103,10 @@ class TrackingService : LifecycleService() {
         when (key) {
             in AppSettings.RESTART_KEYS -> analysisExecutor.execute { recreateTracker() }
             AppSettings.KEY_PROTOCOL, AppSettings.KEY_TARGET_HOST, AppSettings.KEY_VMC_PORT,
-            AppSettings.KEY_IFM_PORT, AppSettings.KEY_AUTO_DETECT -> engine.reconfigureSenders()
+            AppSettings.KEY_IFM_PORT, AppSettings.KEY_AUTO_DETECT -> {
+                engine.reconfigureSenders()
+                if (started && !stopped) updateWifiLock()
+            }
         }
     }
 
@@ -146,7 +149,7 @@ class TrackingService : LifecycleService() {
         TrackingHub.updateStatus { it.copy(running = true, error = null) }
         engine.reconfigureSenders()
         analysisExecutor.execute { recreateTracker() }
-        acquireWifiLock()
+        updateWifiLock()
         getSystemService(DisplayManager::class.java).registerDisplayListener(displayListener, null)
 
         val future = ProcessCameraProvider.getInstance(this)
@@ -313,14 +316,19 @@ class TrackingService : LifecycleService() {
 
     /**
      * Wi-Fi power saving can hold outgoing UDP for 100ms+, especially with the screen dimmed.
-     * A low-latency lock keeps the radio awake while tracking runs.
+     * A low-latency lock keeps the radio awake while we send to a PC, and only then: phone-only
+     * use and waiting for a PC's first hello don't need it.
      */
-    private fun acquireWifiLock() {
-        val wifi = applicationContext.getSystemService(WifiManager::class.java) ?: return
-        wifiLock = wifi.createWifiLock(WifiManager.WIFI_MODE_FULL_LOW_LATENCY, "vrmdroid:tracking").apply {
-            setReferenceCounted(false)
-            runCatching { acquire() }
+    private fun updateWifiLock() {
+        val sending = settings.protocol != OutputProtocol.NONE && settings.targetHost.isNotEmpty()
+        val lock = wifiLock ?: run {
+            val wifi = applicationContext.getSystemService(WifiManager::class.java) ?: return
+            wifi.createWifiLock(WifiManager.WIFI_MODE_FULL_LOW_LATENCY, "vrmdroid:tracking")
+                .apply { setReferenceCounted(false) }
+                .also { wifiLock = it }
         }
+        if (sending && !lock.isHeld) runCatching { lock.acquire() }
+        else if (!sending && lock.isHeld) lock.release()
     }
 
     private fun fail(message: String, e: Throwable) {

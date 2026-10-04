@@ -80,6 +80,7 @@ class MainActivity : AppCompatActivity(), UnityActivitySupport {
     private lateinit var restoreUi: View
     private lateinit var guide: CalibrationGuideView
     private var dimmer: IdleDimmer? = null
+    private val isDimmed get() = dimmer?.dimmed == true
     private lateinit var dataConsole: DataConsoleView
     private var calibrationJob: Job? = null
 
@@ -182,21 +183,29 @@ class MainActivity : AppCompatActivity(), UnityActivitySupport {
                     guide.visibility != View.VISIBLE &&
                     lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
             },
-            // Nobody is looking: barely draw the avatar to save heat and battery.
-            onDim = { unityHost?.setLowPower(true) },
-            onWake = { unityHost?.setLowPower(false) },
+            // Nobody is looking: barely draw the avatar and stop updating what's hidden under
+            // the dim overlay, to save heat and battery. Tracking and sending carry on.
+            onDim = {
+                unityHost?.setLowPower(true)
+                SentDataMonitor.enabled = false
+            },
+            onWake = {
+                unityHost?.setLowPower(false)
+                SentDataMonitor.enabled = settings.dataConsole
+                render(TrackingHub.status.value)
+            },
         ).also { it.start(lifecycleScope) }
 
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                launch { TrackingHub.status.collect { render(it); dimmer?.render(it) } }
-                launch { TrackingHub.latest.collect { facePreview.result = it } }
+                launch { TrackingHub.status.collect { if (!isDimmed) render(it); dimmer?.render(it) } }
+                launch { TrackingHub.latest.collect { if (!isDimmed) facePreview.result = it } }
                 launch { TrackingHub.pcFound.collect(::showPcFound) }
                 launch { UnityBridge.avatarState.collect(::renderAvatarState) }
                 launch {
                     // A few refreshes per second keeps the numbers readable and cheap.
                     while (true) {
-                        if (dataConsole.visibility == View.VISIBLE) dataConsole.refresh(TrackingHub.status.value.running)
+                        if (dataConsole.visibility == View.VISIBLE && !isDimmed) dataConsole.refresh(TrackingHub.status.value.running)
                         delay(250)
                     }
                 }
