@@ -35,6 +35,8 @@ class AppSettings(val prefs: SharedPreferences) {
     val vmcSendPerfectSync: Boolean get() = prefs.getBoolean(KEY_VMC_PERFECT_SYNC, true)
     val vmcSendVrmPresets: Boolean get() = prefs.getBoolean(KEY_VMC_PRESETS, true)
     val vmcSendEmotions: Boolean get() = prefs.getBoolean(KEY_VMC_EMOTIONS, false)
+    /** Sends a relaxed arm pose so receivers without arm tracking don't show a T-pose. */
+    val vmcSendArmPose: Boolean get() = prefs.getBoolean(KEY_VMC_ARM_POSE, true)
     val vmcSendPosition: Boolean get() = prefs.getBoolean(KEY_VMC_POSITION, true)
     /** Percent applied to head translation before it is sent as the root offset. */
     val vmcPositionScale: Int get() = prefs.getInt(KEY_VMC_POSITION_SCALE, 100)
@@ -112,6 +114,7 @@ class AppSettings(val prefs: SharedPreferences) {
         const val KEY_VMC_PERFECT_SYNC = "vmc_perfect_sync"
         const val KEY_VMC_PRESETS = "vmc_presets"
         const val KEY_VMC_EMOTIONS = "vmc_emotions"
+        const val KEY_VMC_ARM_POSE = "vmc_arm_pose"
         const val KEY_VMC_POSITION = "vmc_position"
         const val KEY_VMC_POSITION_SCALE = "vmc_position_scale"
         const val KEY_INVERT_PITCH = "invert_pitch"

@@ -174,6 +174,7 @@ class SettingsActivity : AppCompatActivity() {
                 rows.switch(card, AppSettings.KEY_VMC_PRESETS, getString(R.string.set_vmc_presets), getString(R.string.set_vmc_presets_desc), true)
                 rows.switch(card, AppSettings.KEY_VMC_PERFECT_SYNC, getString(R.string.set_vmc_perfect_sync), getString(R.string.set_vmc_perfect_sync_desc), true)
                 rows.switch(card, AppSettings.KEY_VMC_EMOTIONS, getString(R.string.set_vmc_emotions), getString(R.string.set_vmc_emotions_desc), false)
+                rows.switch(card, AppSettings.KEY_VMC_ARM_POSE, getString(R.string.set_vmc_arm_pose), getString(R.string.set_vmc_arm_pose_desc), true)
                 rows.divider(card)
                 rows.textField(card, AppSettings.KEY_VMC_PORT, getString(R.string.set_port), getString(R.string.set_port_vmc_desc), "39539", numeric = true)
             }
