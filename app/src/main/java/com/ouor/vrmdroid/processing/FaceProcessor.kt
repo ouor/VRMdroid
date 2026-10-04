@@ -21,7 +21,7 @@ class FaceProcessor {
     /** Head rotation at calibration (see [Rotation]); identity until calibrated. */
     private var neutralRotation = Rotation.fromEuler(0f, 0f, 0f)
     private var neutralPosition = FloatArray(3)
-    private var calibrateRequested = true
+    @Volatile private var calibrateRequested = true
     private var lastResult: TrackingResult? = null
     private var appliedSmoothing = -1
 

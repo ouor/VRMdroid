@@ -216,6 +216,7 @@
     <string name="overlay_searching">얼굴을 찾고 있어요…</string>
     <string name="set_send_rate_value">%1$s회/초</string>
     <string name="error_file_open">파일을 열 수 없어요</string>
+    <string name="error_sender_setup">보내기 설정에 문제가 있어요: %1$s</string>
     <string name="error_not_vrm">VRM 파일이 아니에요. .vrm 파일을 골라 주세요</string>
 
     <!-- Notification -->

@@ -29,6 +29,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleService
+import androidx.lifecycle.lifecycleScope
 import com.ouor.vrmdroid.MainActivity
 import com.ouor.vrmdroid.R
 import com.ouor.vrmdroid.avatar.UnityHost
@@ -36,28 +37,25 @@ import com.ouor.vrmdroid.output.IFacialMocapSender
 import com.ouor.vrmdroid.output.PreviewSender
 import com.ouor.vrmdroid.output.TrackingSender
 import com.ouor.vrmdroid.output.VmcSender
-import com.ouor.vrmdroid.processing.FaceProcessor
-import com.ouor.vrmdroid.processing.TrackingResult
 import com.ouor.vrmdroid.settings.AppSettings
 import com.ouor.vrmdroid.settings.OutputProtocol
 import com.ouor.vrmdroid.settings.TrackingConfig
-import com.ouor.vrmdroid.tracking.FaceFrame
 import com.ouor.vrmdroid.tracking.FaceTracker
 import com.ouor.vrmdroid.tracking.FaceTrackerFactory
 import com.ouor.vrmdroid.tracking.FrameConverter
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-import java.util.concurrent.RejectedExecutionException
-import java.util.concurrent.atomic.AtomicReference
+import kotlinx.coroutines.launch
 
 /**
- * Owns the camera, the tracker and the network senders. Runs as a camera foreground service so
- * tracking and sending continue while the app is in the background.
+ * The Android shell around [TrackingEngine]: owns the camera, the tracker, the Wi-Fi lock and the
+ * notification, and turns settings changes into engine calls. Runs as a camera foreground service
+ * so tracking and sending continue while the app is in the background.
  */
 class TrackingService : LifecycleService() {
 
     private lateinit var settings: AppSettings
-    private val processor = FaceProcessor()
+    private lateinit var engine: TrackingEngine
 
     private val analysisExecutor: ExecutorService = Executors.newSingleThreadExecutor()
     private val networkExecutor: ExecutorService = Executors.newSingleThreadExecutor()
@@ -80,39 +78,38 @@ class TrackingService : LifecycleService() {
         }
     }
 
-    /** Touched only on [networkExecutor]. */
-    private var consecutiveSendFailures = 0
-    private var lastSendFailureLog = 0L
-    private var lastSenderRetry = 0L
-
-    /** Touched only on [networkExecutor]. */
-    private var senders: List<TrackingSender> = emptyList()
-    private val pendingSend = AtomicReference<TrackingResult?>(null)
-    private var lastSendAt = 0L
     @Volatile private var stopped = false
-    /** Address of the PC that last sent an iFacialMocap handshake this session. */
-    @Volatile private var handshakeHost: String? = null
-
-    private var frameCount = 0
-    private var fpsWindowStart = SystemClock.uptimeMillis()
-
-    /** Settings snapshot for the per-frame path; replaced whenever a preference changes. */
-    @Volatile private var config = TrackingConfig()
 
     private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-        config = TrackingConfig.from(settings)
+        engine.config = TrackingConfig.from(settings)
         when (key) {
             in AppSettings.RESTART_KEYS -> analysisExecutor.execute { recreateTracker() }
             AppSettings.KEY_PROTOCOL, AppSettings.KEY_TARGET_HOST, AppSettings.KEY_VMC_PORT,
-            AppSettings.KEY_IFM_PORT, AppSettings.KEY_AUTO_DETECT -> networkExecutor.execute { recreateSenders() }
+            AppSettings.KEY_IFM_PORT, AppSettings.KEY_AUTO_DETECT -> engine.reconfigureSenders()
         }
     }
 
     override fun onCreate() {
         super.onCreate()
         settings = AppSettings(this)
-        config = TrackingConfig.from(settings)
+        engine = TrackingEngine(
+            networkExecutor = networkExecutor,
+            senderSettings = {
+                SenderSettings(settings.protocol, settings.targetHost, settings.iFacialMocapPort, settings.vmcPort, settings.autoDetectHost)
+            },
+            createSenders = ::createSenders,
+            adoptHost = { settings.targetHost = it },
+            messages = object : EngineMessages {
+                override val sendFailed get() = getString(R.string.error_send_failed)
+                override fun portBusy(port: Int) = getString(R.string.error_port_busy, port)
+                override fun senderSetupFailed(reason: String?) = getString(R.string.error_sender_setup, reason ?: "")
+            },
+            clock = SystemClock::uptimeMillis,
+            warn = { msg, e -> Log.w(TAG, msg, e) },
+        )
+        engine.config = TrackingConfig.from(settings)
         settings.prefs.registerOnSharedPreferenceChangeListener(prefsListener)
+        lifecycleScope.launch { TrackingHub.calibrationRequests.collect { engine.requestCalibration() } }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -129,7 +126,7 @@ class TrackingService : LifecycleService() {
 
     private fun start() {
         TrackingHub.updateStatus { it.copy(running = true, error = null) }
-        networkExecutor.execute { recreateSenders() }
+        engine.reconfigureSenders()
         analysisExecutor.execute { recreateTracker() }
         acquireWifiLock()
         getSystemService(DisplayManager::class.java).registerDisplayListener(displayListener, null)
@@ -200,7 +197,7 @@ class TrackingService : LifecycleService() {
         try {
             val t = FaceTrackerFactory.create(this, settings)
             // Ignore late results from a tracker that has since been replaced.
-            t.listener = { frame -> if (t === tracker) onFrame(frame) }
+            t.listener = { frame -> if (t === tracker) engine.onFrame(frame) }
             tracker = t
             TrackingHub.updateStatus { it.copy(trackerName = t.name) }
         } catch (e: Exception) {
@@ -208,142 +205,22 @@ class TrackingService : LifecycleService() {
         }
     }
 
-    /** Called on the tracker's result thread. */
-    private fun onFrame(frame: FaceFrame) {
-        // A result can still arrive from MediaPipe's thread after onDestroy started.
-        if (stopped) return
-        if (TrackingHub.calibrationRequested) {
-            TrackingHub.calibrationRequested = false
-            processor.requestCalibration()
-        }
-        val cfg = config
-        val result = processor.process(frame, cfg)
-        TrackingHub.publish(result)
-        updateFps(frame)
-
-        val now = SystemClock.uptimeMillis()
-        if (now - lastSendAt < 1000L / cfg.sendRate - 2) return
-        lastSendAt = now
-        // Latest-wins hand-off so a slow network never backs up the tracker.
-        if (pendingSend.getAndSet(result) == null) {
-            try {
-                networkExecutor.execute {
-                    val r = pendingSend.getAndSet(null) ?: return@execute
-                    var failed: Exception? = null
-                    for (s in senders) {
-                        try { s.send(r, cfg) } catch (e: Exception) { failed = e }
-                    }
-                    onSendResult(failed)
-                }
-            } catch (_: RejectedExecutionException) {
-                // Shutting down; dropping the last frame is fine.
-            }
-        }
-    }
-
-    private fun updateFps(frame: FaceFrame) {
-        frameCount++
-        val now = SystemClock.uptimeMillis()
-        val elapsed = now - fpsWindowStart
-        if (elapsed >= 500) {
-            val fps = frameCount * 1000f / elapsed
-            frameCount = 0
-            fpsWindowStart = now
-            TrackingHub.updateStatus {
-                it.copy(fps = fps, inferenceMs = frame.inferenceMs, faceDetected = frame.detected)
-            }
-        } else if (frame.detected != TrackingHub.status.value.faceDetected) {
-            TrackingHub.updateStatus { it.copy(faceDetected = frame.detected) }
-        }
-    }
-
-    /** Runs on [networkExecutor]. */
-    private fun recreateSenders() {
-        senders.forEach { runCatching { it.close() } }
+    /** Runs on the network thread (see [TrackingEngine]). */
+    private fun createSenders(s: SenderSettings, onHandshake: (String) -> Unit): List<TrackingSender> {
         // The local avatar feed is only useful when Unity is linked into this build.
         val list = mutableListOf<TrackingSender>()
         if (UnityHost.AVAILABLE) list += PreviewSender()
-        try {
-            when (settings.protocol) {
-                OutputProtocol.IFACIALMOCAP -> list += IFacialMocapSender(
-                    host = settings.targetHost,
-                    port = settings.iFacialMocapPort,
-                    adoptHandshakeHost = settings.autoDetectHost,
-                    onHandshake = ::onPcHandshake,
-                )
-                OutputProtocol.VMC -> {
-                    if (settings.targetHost.isNotEmpty()) list += VmcSender(settings.targetHost, settings.vmcPort)
-                }
-                OutputProtocol.NONE -> Unit
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "sender setup failed", e)
-            TrackingHub.updateStatus { it.copy(error = "보내기 설정에 문제가 있어요: ${e.message}") }
+        when (s.protocol) {
+            OutputProtocol.IFACIALMOCAP -> list += IFacialMocapSender(
+                host = s.host,
+                port = s.iFacialMocapPort,
+                adoptHandshakeHost = s.autoDetectHost,
+                onHandshake = onHandshake,
+            )
+            OutputProtocol.VMC -> if (s.host.isNotEmpty()) list += VmcSender(s.host, s.vmcPort)
+            OutputProtocol.NONE -> Unit
         }
-        senders = list
-        val portBusy = list.any { it is IFacialMocapSender && !it.listening }
-        val portMsg = getString(R.string.error_port_busy, settings.iFacialMocapPort)
-        TrackingHub.updateStatus {
-            when {
-                portBusy -> it.copy(error = portMsg)
-                it.error == portMsg -> it.copy(error = null)
-                else -> it
-            }
-        }
-        publishLink()
-    }
-
-    /**
-     * Runs on [networkExecutor]. Logs at most every few seconds instead of every frame, and
-     * reports a sustained failure in the status so it never goes unnoticed.
-     */
-    private fun onSendResult(error: Exception?) {
-        if (error == null) {
-            if (consecutiveSendFailures >= SEND_FAILURE_THRESHOLD) {
-                val msg = getString(R.string.error_send_failed)
-                TrackingHub.updateStatus { if (it.error == msg) it.copy(error = null) else it }
-            }
-            consecutiveSendFailures = 0
-            return
-        }
-        consecutiveSendFailures++
-        val now = SystemClock.uptimeMillis()
-        if (now - lastSendFailureLog > SEND_FAILURE_LOG_MS) {
-            lastSendFailureLog = now
-            Log.w(TAG, "send failing ($consecutiveSendFailures in a row)", error)
-        }
-        if (consecutiveSendFailures == SEND_FAILURE_THRESHOLD) {
-            TrackingHub.updateStatus { it.copy(error = getString(R.string.error_send_failed)) }
-        }
-        // Addresses resolve once, when the sender is created. A PC name (*.local) that failed to
-        // resolve, or a network that came back, needs fresh senders to recover.
-        if (consecutiveSendFailures >= SEND_FAILURE_THRESHOLD && now - lastSenderRetry > SENDER_RETRY_MS) {
-            lastSenderRetry = now
-            recreateSenders()
-        }
-    }
-
-    /** Called from the iFacialMocap listener thread whenever a PC app says hello. */
-    private fun onPcHandshake(address: String) {
-        val isNew = handshakeHost != address
-        handshakeHost = address
-        if (settings.autoDetectHost && settings.targetHost != address) {
-            settings.targetHost = address // recreates senders via prefsListener, which republishes
-        } else {
-            publishLink()
-        }
-        if (isNew) TrackingHub.notifyPcFound(address)
-    }
-
-    private fun publishLink() {
-        val protocol = settings.protocol
-        val host = settings.targetHost
-        val link = when {
-            protocol == OutputProtocol.NONE -> PcLink.OFF
-            host.isNotEmpty() -> PcLink.SENDING
-            else -> PcLink.WAITING
-        }
-        TrackingHub.updateStatus { it.copy(protocol = protocol, pcAddress = host, pcLink = link) }
+        return list
     }
 
     /**
@@ -404,6 +281,7 @@ class TrackingService : LifecycleService() {
         // Order matters: stop accepting frames first, then tear down, and reset shared state
         // last so a late result can't republish a stale frame after the reset.
         stopped = true
+        engine.shutdown()
         tracker?.listener = null
         getSystemService(DisplayManager::class.java).unregisterDisplayListener(displayListener)
         wifiLock?.takeIf { it.isHeld }?.release()
@@ -412,7 +290,6 @@ class TrackingService : LifecycleService() {
         cameraProvider = null
         analysisExecutor.execute { tracker?.close(); tracker = null }
         analysisExecutor.shutdown()
-        networkExecutor.execute { senders.forEach { runCatching { it.close() } }; senders = emptyList() }
         networkExecutor.shutdown()
         TrackingHub.publish(null)
         TrackingHub.updateStatus { TrackingStatus() }
@@ -424,10 +301,7 @@ class TrackingService : LifecycleService() {
         private const val CHANNEL_ID = "tracking"
         private const val NOTIFICATION_ID = 1
         private const val ACTION_STOP = "com.ouor.vrmdroid.STOP"
-        private const val SEND_FAILURE_THRESHOLD = 30
         private const val TARGET_FPS = 30
-        private const val SENDER_RETRY_MS = 5_000L
-        private const val SEND_FAILURE_LOG_MS = 5000L
 
         fun start(context: Context) {
             ContextCompat.startForegroundService(context, Intent(context, TrackingService::class.java))
