@@ -38,11 +38,16 @@ class IFacialMocapSender(
     override val destination: String
         get() = target?.let { "iFacialMocap → ${it.hostString}:$port" } ?: "iFacialMocap (PC 연결 대기 중)"
 
+    /** False when another app holds the port, so PC handshakes can't be heard. */
+    var listening = true
+        private set
+
     private val socket: DatagramSocket = try {
         val listenAddress = InetSocketAddress(port) // outside apply{}: DatagramSocket has its own `port`
         DatagramSocket(null).apply { reuseAddress = true; bind(listenAddress) }
     } catch (e: SocketException) {
         Log.w(TAG, "Port $port busy; handshake detection disabled", e)
+        listening = false
         DatagramSocket()
     }
     private val text = StringBuilder(2048)

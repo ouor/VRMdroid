@@ -82,11 +82,18 @@ namespace VrmDroid
         {
             _loading = true;
             Status = "아바타를 불러오고 있어요…";
+            // Free the current avatar first: holding old and new models (plus the file bytes)
+            // at once doubles peak memory, which can get the whole app killed on low-end phones.
+            if (Instance != null)
+            {
+                Destroy(Instance.gameObject);
+                Instance = null;
+                await Resources.UnloadUnusedAssets();
+            }
             try
             {
                 var instance = await Vrm10.LoadPathAsync(path, canLoadVrm0X: true, showMeshes: true);
                 if (instance == null) throw new InvalidDataException("VRM 파일을 읽지 못했어요");
-                if (Instance != null) Destroy(Instance.gameObject);
                 Instance = instance;
                 _loadedWriteTime = writeTime;
                 Setup(instance);
@@ -160,6 +167,10 @@ namespace VrmDroid
             var head = new Quaternion(
                 p[TrackingPacket.HeadRotation], p[TrackingPacket.HeadRotation + 1],
                 p[TrackingPacket.HeadRotation + 2], p[TrackingPacket.HeadRotation + 3]);
+            // A degenerate rotation would poison the bones (and spring bones) for good.
+            var length = Mathf.Sqrt(head.x * head.x + head.y * head.y + head.z * head.z + head.w * head.w);
+            if (length < 1e-3f) return;
+            head = new Quaternion(head.x / length, head.y / length, head.z / length, head.w / length);
             var neckBone = rig?.GetBoneTransform(HumanBodyBones.Neck);
             var headBone = rig?.GetBoneTransform(HumanBodyBones.Head);
             if (neckBone != null)

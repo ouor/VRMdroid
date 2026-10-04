@@ -7,8 +7,9 @@ using UnityEngine;
 namespace VrmDroid
 {
     /// <summary>
-    /// Receives tracking packets from the Android host over UDP. On the phone this is localhost;
-    /// in the Editor you can point the phone's preview stream at your PC for testing.
+    /// Receives tracking packets from the Android host over UDP. On the phone this listens on
+    /// loopback only (the host app is in the same process); in the Editor it listens on all
+    /// interfaces so a phone on the LAN can be pointed at the PC for testing.
     /// </summary>
     public sealed class TrackingReceiver : MonoBehaviour
     {
@@ -23,7 +24,7 @@ namespace VrmDroid
         long _consumedCount;
         DateTime _lastPacketUtc = DateTime.MinValue;
 
-        UdpClient _client;
+        Socket _socket;
         Thread _thread;
         volatile bool _running;
 
@@ -43,40 +44,46 @@ namespace VrmDroid
 
         void OnEnable()
         {
+            var address = Application.isEditor ? IPAddress.Any : IPAddress.Loopback;
+            Socket socket;
             try
             {
-                _client = new UdpClient(new IPEndPoint(IPAddress.Any, port));
+                socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+                socket.Bind(new IPEndPoint(address, port));
             }
             catch (SocketException e)
             {
                 Debug.LogError($"[VrmDroid] Cannot listen on UDP {port}: {e.Message}");
                 return;
             }
+            _socket = socket;
             _running = true;
-            _thread = new Thread(Receive) { IsBackground = true, Name = "VrmDroid UDP" };
+            // The thread owns its socket reference, so OnDisable clearing the field can't race it.
+            _thread = new Thread(() => Receive(socket)) { IsBackground = true, Name = "VrmDroid UDP" };
             _thread.Start();
         }
 
         void OnDisable()
         {
             _running = false;
-            _client?.Close();
-            _client = null;
+            _socket?.Close();
+            _socket = null;
             _thread?.Join(200);
             _thread = null;
         }
 
-        void Receive()
+        void Receive(Socket socket)
         {
-            var any = new IPEndPoint(IPAddress.Any, 0);
+            var buffer = new byte[2048]; // reused; packets are ~300 bytes
+            EndPoint any = new IPEndPoint(IPAddress.Any, 0);
             while (_running)
             {
                 try
                 {
-                    var data = _client.Receive(ref any);
+                    var length = socket.ReceiveFrom(buffer, ref any);
                     lock (_lock)
                     {
-                        if (TrackingPacket.TryParse(data, data.Length, _incoming))
+                        if (TrackingPacket.TryParse(buffer, length, _incoming) && AllFinite(_incoming))
                         {
                             Array.Copy(_incoming, _latest, _latest.Length);
                             _receivedCount++;
@@ -87,6 +94,15 @@ namespace VrmDroid
                 catch (SocketException) { if (!_running) break; }
                 catch (ObjectDisposedException) { break; }
             }
+        }
+
+        static bool AllFinite(float[] values)
+        {
+            foreach (var v in values)
+            {
+                if (float.IsNaN(v) || float.IsInfinity(v)) return false;
+            }
+            return true;
         }
 
         /// <summary>Copies the newest packet into <paramref name="into"/>; false if nothing new.</summary>

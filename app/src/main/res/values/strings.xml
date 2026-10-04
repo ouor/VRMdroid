@@ -26,6 +26,8 @@
     <!-- Status pill -->
     <string name="pill_off">꺼져 있어요</string>
     <string name="pill_error">문제가 생겼어요</string>
+    <string name="error_send_failed">PC로 보내지 못하고 있어요. PC 주소와 와이파이를 확인해 주세요.</string>
+    <string name="error_port_busy">다른 앱이 %1$d번 포트를 쓰고 있어서 PC 연결을 알아챌 수 없어요.</string>
     <string name="error_camera_lost">카메라를 쓸 수 없어요. 다른 앱이 카메라를 쓰고 있는지 확인해 주세요.</string>
     <string name="pill_no_face">얼굴이 안 보여요</string>
     <string name="pill_face">얼굴 인식 중</string>
@@ -104,6 +106,7 @@
     <string name="connect_vmc_1">PC 프로그램에서 \'VMC 받기\'를 켜고 포트를 39539로 맞춰 주세요</string>
     <string name="connect_vmc_2">아래에 PC의 주소를 입력해 주세요</string>
     <string name="connect_pc_address">PC의 주소</string>
+    <string name="connect_pc_address_invalid">주소 형식을 확인해 주세요 (예: 192.168.0.10)</string>
     <string name="connect_pc_address_help">PC에서 \'명령 프롬프트\'를 열고 ipconfig를 입력하면 나오는 IPv4 주소예요</string>
     <string name="connect_waiting">PC가 연결하기를 기다리고 있어요…</string>
     <string name="connect_connected">연결됐어요! PC의 아바타가 따라 움직여요</string>
