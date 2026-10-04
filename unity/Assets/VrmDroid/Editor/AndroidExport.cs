@@ -43,6 +43,9 @@ namespace VrmDroid.Editor
             PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
             PlayerSettings.Android.minSdkVersion = (AndroidSdkVersions)31;
             PlayerSettings.Android.applicationEntry = AndroidApplicationEntry.Activity;
+            // VRMs load their normal maps at runtime as plain RGB(A) textures. DXT5nm-style decoding
+            // would read alpha as the X component and bend every normal sideways.
+            PlayerSettings.SetNormalMapEncoding(NamedBuildTarget.Android, NormalMapEncoding.XYZ);
             PlayerSettings.defaultInterfaceOrientation = UIOrientation.AutoRotation;
             PlayerSettings.runInBackground = true;
 

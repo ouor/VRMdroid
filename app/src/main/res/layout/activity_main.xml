@@ -151,6 +151,49 @@
                 app:tint="@color/text_primary" />
         </LinearLayout>
 
+        <!-- Shown while the bundled sample avatar is in use. -->
+        <LinearLayout
+            android:id="@+id/sample_chip"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:layout_gravity="top|start"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="72dp"
+            android:background="@drawable/bg_pill_touch"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="16dp"
+            android:paddingEnd="12dp"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/sample_chip_label"
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="@string/sample_chip_action"
+                android:textColor="@color/brand_text"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <ImageView
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_marginStart="2dp"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_chevron_right"
+                app:tint="@color/brand_text" />
+        </LinearLayout>
+
         <com.ouor.vrmdroid.ui.FaceOverlayView
             android:id="@+id/face_preview"
             android:layout_width="88dp"

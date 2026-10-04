@@ -14,6 +14,9 @@ val hasUnity = rootProject.findProject(":unityLibrary") != null
 // reproducible; downloaded into the build directory, not the source tree.
 val faceModelUrl = "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task"
 val faceModelSha256 = "64184e229b263107bc2b804c6625db1341ff2bb731874b0bcc2fe6544e0bc9ff"
+// CC0 VRoid sample model (license in the file's VRM meta), shown until the user picks their own.
+val sampleAvatarUrl = "https://raw.githubusercontent.com/madjin/vrm-samples/e16eb187100149a315ad92c3c9968f1d5baa6c7d/vroid/beta/Sendagaya_Shibu.vrm"
+val sampleAvatarSha256 = "b7bcad5e5890abc4d7c65f9afc31da2445db03197d44f1ec10447f9db5abeaff"
 val generatedAssets = layout.buildDirectory.dir("generated/mlmodel")
 
 android {
@@ -75,7 +78,19 @@ val verifyFaceModel by tasks.registering(Verify::class) {
     algorithm("SHA-256")
     checksum(faceModelSha256)
 }
-tasks.named("preBuild") { dependsOn(verifyFaceModel) }
+val sampleAvatarFile = generatedAssets.map { it.file("sample_avatar.vrm") }
+val downloadSampleAvatar by tasks.registering(Download::class) {
+    src(sampleAvatarUrl)
+    dest(sampleAvatarFile)
+    overwrite(false)
+}
+val verifySampleAvatar by tasks.registering(Verify::class) {
+    dependsOn(downloadSampleAvatar)
+    src(sampleAvatarFile)
+    algorithm("SHA-256")
+    checksum(sampleAvatarSha256)
+}
+tasks.named("preBuild") { dependsOn(verifyFaceModel, verifySampleAvatar) }
 
 dependencies {
     implementation(libs.androidx.appcompat)

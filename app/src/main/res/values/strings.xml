@@ -174,7 +174,10 @@
     <string name="ob_camera_body">카메라 영상은 저장하거나 밖으로 보내지 않아요. 얼굴이 어떻게 움직였는지만 사용해요.</string>
     <string name="ob_camera_cta">카메라 허용하기</string>
     <string name="ob_avatar_title">내 아바타를\n불러와 주세요</string>
-    <string name="ob_avatar_body">폰에 저장한 VRM 파일을 골라 주세요. 나중에 바꿀 수도 있어요.</string>
+    <string name="ob_avatar_body">폰에 저장한 VRM 파일을 골라 주세요. 아직 없으면 샘플 아바타로 먼저 써 볼 수 있어요.</string>
+    <string name="ob_avatar_sample">샘플 아바타로 시작할게요</string>
+    <string name="sample_chip_label">샘플 아바타</string>
+    <string name="sample_chip_action">내 아바타로 바꾸기</string>
     <string name="ob_avatar_cta">VRM 파일 고르기</string>
     <string name="ob_later">나중에 할게요</string>
     <string name="ob_where_title">어디에서 쓸까요?</string>
