@@ -18,9 +18,12 @@ namespace VrmDroid
         [SerializeField] float minDistance = 0.3f;
         [SerializeField] float maxDistance = 4f;
 
-        const float DefaultDistance = 1.6f;
+        const float DefaultDistance = 2.1f;
+        // The head bone sits at the base of the skull; the face's center is a little above it.
+        const float FaceAboveHeadBone = 0.08f;
 
-        const float DefaultPitch = 3f;
+        // Level camera: any tilt would move the face away from the 1/3 line.
+        const float DefaultPitch = 0f;
         [Tooltip("How far (meters) a two-finger pan may move the view away from the avatar.")]
         [SerializeField] float maxPan = 1.2f;
 
@@ -66,11 +69,14 @@ namespace VrmDroid
 
         void Frame(Vrm10Instance instance)
         {
-            // Upper-body shot: aim a little below the face so shoulders and chest are in frame,
-            // leaving room for the app's controls at the top and bottom of the screen.
+            // Place the face one third down from the top of the screen. With a level camera the
+            // visible half-height at distance D is D·tan(fov/2), so aiming h/3 below the face puts
+            // it at 1/2 − 1/6 = 1/3 from the top, whatever the screen's aspect ratio.
             if (instance.TryGetBoneTransform(HumanBodyBones.Head, out var head))
             {
-                _homeFocus = head.position + new Vector3(0f, -0.15f, 0f);
+                var face = head.position + Vector3.up * FaceAboveHeadBone;
+                var halfHeight = DefaultDistance * Mathf.Tan(viewCamera.fieldOfView * 0.5f * Mathf.Deg2Rad);
+                _homeFocus = face - Vector3.up * (halfHeight / 3f);
             }
             ResetView();
         }

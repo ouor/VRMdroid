@@ -214,15 +214,47 @@ class MainActivity : AppCompatActivity(), UnityActivitySupport {
         val controls = findViewById<View>(R.id.controls)
         val topPad = topBar.paddingTop
         val bottomPad = controls.paddingBottom
+        val sidePad = topBar.paddingLeft
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.root)) { _, insets ->
-            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            topBar.updatePadding(top = topPad + bars.top)
-            controls.updatePadding(bottom = bottomPad + bars.bottom)
+            // Cutouts and a side navigation bar matter in landscape.
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
+            val landscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+            topBar.updatePadding(top = topPad + bars.top, left = sidePad + bars.left, right = sidePad + bars.right)
+            controls.updatePadding(
+                // Landscape: a side panel whose gradient fades in from its left edge.
+                left = if (landscape) dp(LANDSCAPE_PANEL_FADE_DP) else dp(20) + bars.left,
+                top = if (landscape) dp(16) else dp(56),
+                right = dp(20) + bars.right,
+                bottom = bottomPad + bars.bottom,
+            )
             facePreview.updateLayoutParams<FrameLayout.LayoutParams> { topMargin = bars.top + dp(72) }
             // The power-saving countdown card sits just below the status pill.
             findViewById<View>(R.id.dim_warning).updateLayoutParams<FrameLayout.LayoutParams> { topMargin = bars.top + dp(72) }
             insets
         }
+        applyOrientationLayout(resources.configuration)
+    }
+
+    /**
+     * Portrait: controls span the bottom. Landscape: the same controls sit in a panel on the end
+     * side and the avatar is centered in the remaining area. Done in code because MainActivity handles
+     * orientation changes itself (recreating it would tear down the embedded Unity player).
+     */
+    private fun applyOrientationLayout(config: Configuration) {
+        val landscape = config.orientation == Configuration.ORIENTATION_LANDSCAPE
+        val controls = findViewById<View>(R.id.controls)
+        controls.updateLayoutParams<FrameLayout.LayoutParams> {
+            width = if (landscape) dp(LANDSCAPE_PANEL_DP) else ViewGroup.LayoutParams.MATCH_PARENT
+            gravity = if (landscape) Gravity.BOTTOM or Gravity.END else Gravity.BOTTOM
+        }
+        controls.setBackgroundResource(if (landscape) R.drawable.bg_end_scrim else R.drawable.bg_bottom_scrim)
+        // Landscape: shrink the avatar stage to the area left of the panel, so the avatar is
+        // centered there instead of behind the controls. Unity re-fits its camera to the new
+        // aspect; behind the panel the root shows the same stage color, so there's no seam.
+        findViewById<View>(R.id.stage).updateLayoutParams<FrameLayout.LayoutParams> {
+            marginEnd = if (landscape) dp(LANDSCAPE_PANEL_DP - LANDSCAPE_PANEL_FADE_DP) else 0
+        }
+        ViewCompat.requestApplyInsets(findViewById(R.id.root))
     }
 
     /** Places the Unity avatar on the stage; the landmark view becomes a small round inset. */
@@ -379,6 +411,8 @@ class MainActivity : AppCompatActivity(), UnityActivitySupport {
 
     companion object {
         const val EXTRA_CALIBRATE = "calibrate"
+        private const val LANDSCAPE_PANEL_DP = 440
+        private const val LANDSCAPE_PANEL_FADE_DP = 72
     }
 
     // Unity player lifecycle forwarding.
@@ -397,6 +431,7 @@ class MainActivity : AppCompatActivity(), UnityActivitySupport {
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
         unityHost?.onConfigurationChanged(newConfig)
+        applyOrientationLayout(newConfig)
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
