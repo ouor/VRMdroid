@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
+using UniGLTF;
 using UnityEngine;
 using UniVRM10;
 
@@ -60,6 +61,10 @@ namespace VrmDroid
         Vector3 _rootBasePosition;
         float _lastFaceTime;
         static readonly HumanBodyBones[] RelaxBones = { HumanBodyBones.Neck, HumanBodyBones.Head };
+        // e^-7 < 0.1%: the pose is neutral to the eye by then.
+        const float RelaxTimeConstants = 7f;
+        // Largest texture side kept after loading (see TextureBudget).
+        const int MaxTextureSize = 1024;
         bool _hasSideBlinks;
         readonly System.Collections.Generic.List<ExpressionKey> _keyScratch = new System.Collections.Generic.List<ExpressionKey>();
         DateTime _loadedWriteTime = DateTime.MinValue;
@@ -86,7 +91,10 @@ namespace VrmDroid
             if (Instance == null) return;
             if (receiver != null && receiver.TryGetLatest(_packet)) Apply(_packet);
             // Face gone (looked away, left the desk): don't freeze mid-blink; ease to neutral.
-            if (Time.unscaledTime - _lastFaceTime > lostFaceHold) Relax(Time.unscaledDeltaTime);
+            // The easing is exponential, so after a few time constants it is done; stop then
+            // instead of touching the rig every frame for as long as nobody is there.
+            var lostFor = Time.unscaledTime - _lastFaceTime;
+            if (lostFor > lostFaceHold && lostFor < lostFaceHold + RelaxTimeConstants / relaxSpeed) Relax(Time.unscaledDeltaTime);
         }
 
         void Relax(float dt)
@@ -205,6 +213,7 @@ namespace VrmDroid
         void Setup(Vrm10Instance instance)
         {
             instance.transform.SetParent(transform, false);
+            TextureBudget.Shrink(instance.GetComponent<RuntimeGltfInstance>(), MaxTextureSize);
             _rootBasePosition = instance.transform.localPosition;
             instance.LookAtTargetType = VRM10ObjectLookAt.LookAtTargetTypes.YawPitchValue;
             ApplyRestPose(instance);
