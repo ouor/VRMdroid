@@ -5,12 +5,11 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.text.Editable
 import android.text.InputType
-import android.text.TextWatcher
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.EditorInfo
 import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ImageButton
@@ -50,6 +49,7 @@ class ConnectActivity : AppCompatActivity() {
     private lateinit var titleView: TextView
     private var program: Program? = null
     private var statusJob: Job? = null
+    private var pcAddressInput: EditText? = null
     private val density by lazy { resources.displayMetrics.density }
     private fun dp(v: Int) = (v * density).toInt()
 
@@ -249,19 +249,40 @@ class ConnectActivity : AppCompatActivity() {
             setPadding(dp(20), dp(16), dp(20), dp(16))
         }
         card.addView(caption(getString(R.string.connect_pc_address)))
-        card.addView(EditText(this).apply {
+        val input = EditText(this).apply {
             setText(settings.targetHost)
             hint = "192.168.0.10"
             textSize = 24f
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
-            addTextChangedListener(object : TextWatcher {
-                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
-                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
-                override fun afterTextChanged(s: Editable?) { settings.targetHost = s.toString().trim() }
-            })
-        })
+            imeOptions = EditorInfo.IME_ACTION_DONE
+            isSingleLine = true
+            // Save when the user is done, not per keystroke: every save rebuilds the sender, and
+            // half-typed addresses ("192.168.0.1") would get packets.
+            setOnEditorActionListener { v, actionId, _ ->
+                if (actionId == EditorInfo.IME_ACTION_DONE) commitPcAddress(v as EditText)
+                false
+            }
+            setOnFocusChangeListener { v, hasFocus -> if (!hasFocus) commitPcAddress(v as EditText) }
+        }
+        pcAddressInput = input
+        card.addView(input)
         card.addView(caption(getString(R.string.connect_pc_address_help)))
         return card
+    }
+
+    private fun commitPcAddress(input: EditText) {
+        val value = input.text.toString().trim()
+        if (value.isEmpty() || isPlausibleHost(value)) {
+            input.error = null
+            if (value != settings.targetHost) settings.targetHost = value
+        } else {
+            input.error = getString(R.string.connect_pc_address_invalid)
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        pcAddressInput?.let(::commitPcAddress)
     }
 
     private fun step(n: Int, text: String): View {
@@ -300,5 +321,12 @@ class ConnectActivity : AppCompatActivity() {
 
     companion object {
         fun intent(context: Context) = Intent(context, ConnectActivity::class.java)
+
+        private val IPV4 = Regex("""^((25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(25[0-5]|2[0-4]\d|1?\d?\d)$""")
+        private val HOSTNAME = Regex("""^[A-Za-z0-9]([A-Za-z0-9-]{0,62})(\.[A-Za-z0-9]([A-Za-z0-9-]{0,62}))*$""")
+
+        /** A complete IPv4 address or a host name (e.g. "my-pc.local"); rejects half-typed IPs. */
+        fun isPlausibleHost(value: String): Boolean =
+            IPV4.matches(value) || (HOSTNAME.matches(value) && !value.all { it.isDigit() || it == '.' })
     }
 }

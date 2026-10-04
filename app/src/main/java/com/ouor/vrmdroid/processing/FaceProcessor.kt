@@ -18,7 +18,9 @@ class FaceProcessor {
     private val shapeFilters = Array(Arkit.COUNT) { OneEuroFilter() }
     private val poseFilters = Array(6) { OneEuroFilter() }
 
-    private var neutral = FloatArray(6) // pitch, yaw, roll, x, y, z
+    /** Head rotation at calibration (see [Rotation]); identity until calibrated. */
+    private var neutralRotation = Rotation.fromEuler(0f, 0f, 0f)
+    private var neutralPosition = FloatArray(3)
     private var calibrateRequested = true
     private var lastResult: TrackingResult? = null
     private var appliedSmoothing = -1
@@ -40,7 +42,8 @@ class FaceProcessor {
         configureFilters(settings.smoothing)
 
         if (calibrateRequested) {
-            neutral = floatArrayOf(raw.pitch, raw.yaw, raw.roll, raw.x, raw.y, raw.z)
+            neutralRotation = Rotation.fromEuler(raw.pitch, raw.yaw, raw.roll)
+            neutralPosition = floatArrayOf(raw.x, raw.y, raw.z)
             poseFilters.forEach { it.reset() }
             calibrateRequested = false
         }
@@ -53,14 +56,20 @@ class FaceProcessor {
         applySensitivity(shapes, settings)
 
         val pose = floatArrayOf(raw.pitch, raw.yaw, raw.roll, raw.x, raw.y, raw.z)
-        for (i in 0 until 6) pose[i] = poseFilters[i].filter(pose[i] - neutral[i], t)
+        // Rotation relative to the calibrated pose, not per-angle subtraction: with the phone
+        // below the face (neutral pitch around -20 degrees), subtracting angles mixed yaw
+        // into roll, so turning the head also tilted the avatar.
+        val rel = Rotation.toEuler(Rotation.relative(neutralRotation, Rotation.fromEuler(raw.pitch, raw.yaw, raw.roll)))
+        pose[0] = rel[0]; pose[1] = rel[1]; pose[2] = rel[2]
+        for (i in 3 until 6) pose[i] -= neutralPosition[i - 3]
+        for (i in 0 until 6) pose[i] = poseFilters[i].filter(pose[i], t)
 
         val subject = FaceFrame(
             timestampMs = t,
             detected = true,
             blendshapes = shapes,
             pitch = pose[0], yaw = pose[1], roll = pose[2],
-            x = pose[3], y = pose[4], z = pose[5] + neutral[5],
+            x = pose[3], y = pose[4], z = pose[5] + neutralPosition[2],
             inferenceMs = raw.inferenceMs,
         )
         val result = TrackingResult(

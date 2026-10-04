@@ -8,9 +8,12 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.ServiceInfo
+import android.hardware.display.DisplayManager
+import android.net.wifi.WifiManager
 import android.os.SystemClock
 import android.util.Log
 import android.util.Size
+import android.view.Display
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.CameraState
 import androidx.camera.core.ImageAnalysis
@@ -34,6 +37,7 @@ import com.ouor.vrmdroid.settings.OutputProtocol
 import com.ouor.vrmdroid.tracking.FaceFrame
 import com.ouor.vrmdroid.tracking.FaceTracker
 import com.ouor.vrmdroid.tracking.FaceTrackerFactory
+import com.ouor.vrmdroid.tracking.FrameConverter
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.RejectedExecutionException
@@ -52,7 +56,26 @@ class TrackingService : LifecycleService() {
     private val networkExecutor: ExecutorService = Executors.newSingleThreadExecutor()
 
     private var cameraProvider: ProcessCameraProvider? = null
-    private var tracker: FaceTracker? = null
+    @Volatile private var tracker: FaceTracker? = null
+    private var analysis: ImageAnalysis? = null
+    private val converter = FrameConverter()
+    private var started = false
+    private var wifiLock: WifiManager.WifiLock? = null
+
+    /** Keeps the analysis rotation in step with the display (e.g. phone moved to a landscape stand). */
+    private val displayListener = object : DisplayManager.DisplayListener {
+        override fun onDisplayAdded(displayId: Int) = Unit
+        override fun onDisplayRemoved(displayId: Int) = Unit
+        override fun onDisplayChanged(displayId: Int) {
+            if (displayId != Display.DEFAULT_DISPLAY) return
+            val rotation = getSystemService(DisplayManager::class.java).getDisplay(displayId)?.rotation ?: return
+            analysis?.targetRotation = rotation
+        }
+    }
+
+    /** Touched only on [networkExecutor]. */
+    private var consecutiveSendFailures = 0
+    private var lastSendFailureLog = 0L
 
     /** Touched only on [networkExecutor]. */
     private var senders: List<TrackingSender> = emptyList()
@@ -86,7 +109,8 @@ class TrackingService : LifecycleService() {
             return START_NOT_STICKY
         }
         startForegroundCompat()
-        if (cameraProvider == null) start()
+        // Provider binding is async, so guard with a flag rather than cameraProvider.
+        if (!started) { started = true; start() }
         return START_NOT_STICKY
     }
 
@@ -94,15 +118,18 @@ class TrackingService : LifecycleService() {
         TrackingHub.updateStatus { it.copy(running = true, error = null) }
         networkExecutor.execute { recreateSenders() }
         analysisExecutor.execute { recreateTracker() }
+        acquireWifiLock()
+        getSystemService(DisplayManager::class.java).registerDisplayListener(displayListener, null)
 
         val future = ProcessCameraProvider.getInstance(this)
         future.addListener({
+            if (stopped) return@addListener // stopped before the camera came up
             try {
                 val provider = future.get()
                 cameraProvider = provider
                 bindCamera(provider)
             } catch (e: Exception) {
-                fail("카메라를 열 수 없어요. 다른 앱이 카메라를 쓰고 있는지 확인해 주세요.", e)
+                fail(getString(R.string.error_camera_lost), e)
             }
         }, ContextCompat.getMainExecutor(this))
     }
@@ -122,10 +149,17 @@ class TrackingService : LifecycleService() {
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
             .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
             .build()
+        getSystemService(DisplayManager::class.java).getDisplay(Display.DEFAULT_DISPLAY)?.let { analysis.targetRotation = it.rotation }
+        this.analysis = analysis
         analysis.setAnalyzer(analysisExecutor) { image ->
-            val rotation = image.imageInfo.rotationDegrees
-            val bitmap = try { image.toBitmap() } finally { image.close() }
-            tracker?.submit(bitmap, rotation, SystemClock.uptimeMillis())
+            image.use {
+                val t = tracker
+                // Skip conversion entirely when the tracker would drop the frame anyway.
+                if (t == null || !t.isReady) return@use
+                // Sensor timestamp (ns) rather than "now", so queueing jitter stays out of the
+                // filters' time steps.
+                t.submit(converter.convert(it), it.imageInfo.timestamp / 1_000_000)
+            }
         }
         provider.unbindAll()
         val camera = provider.bindToLifecycle(this, CameraSelector.DEFAULT_FRONT_CAMERA, analysis)
@@ -147,7 +181,8 @@ class TrackingService : LifecycleService() {
         tracker = null
         try {
             val t = FaceTrackerFactory.create(this, settings)
-            t.listener = ::onFrame
+            // Ignore late results from a tracker that has since been replaced.
+            t.listener = { frame -> if (t === tracker) onFrame(frame) }
             tracker = t
             TrackingHub.updateStatus { it.copy(trackerName = t.name) }
         } catch (e: Exception) {
@@ -175,9 +210,11 @@ class TrackingService : LifecycleService() {
             try {
                 networkExecutor.execute {
                     val r = pendingSend.getAndSet(null) ?: return@execute
+                    var failed: Exception? = null
                     for (s in senders) {
-                        try { s.send(r, settings) } catch (e: Exception) { Log.w(TAG, "send failed: ${s.destination}", e) }
+                        try { s.send(r, settings) } catch (e: Exception) { failed = e }
                     }
+                    onSendResult(failed)
                 }
             } catch (_: RejectedExecutionException) {
                 // Shutting down; dropping the last frame is fine.
@@ -223,7 +260,40 @@ class TrackingService : LifecycleService() {
             TrackingHub.updateStatus { it.copy(error = "보내기 설정에 문제가 있어요: ${e.message}") }
         }
         senders = list
+        val portBusy = list.any { it is IFacialMocapSender && !it.listening }
+        val portMsg = getString(R.string.error_port_busy, settings.iFacialMocapPort)
+        TrackingHub.updateStatus {
+            when {
+                portBusy -> it.copy(error = portMsg)
+                it.error == portMsg -> it.copy(error = null)
+                else -> it
+            }
+        }
         publishLink()
+    }
+
+    /**
+     * Runs on [networkExecutor]. Logs at most every few seconds instead of every frame, and
+     * reports a sustained failure in the status so it never goes unnoticed.
+     */
+    private fun onSendResult(error: Exception?) {
+        if (error == null) {
+            if (consecutiveSendFailures >= SEND_FAILURE_THRESHOLD) {
+                val msg = getString(R.string.error_send_failed)
+                TrackingHub.updateStatus { if (it.error == msg) it.copy(error = null) else it }
+            }
+            consecutiveSendFailures = 0
+            return
+        }
+        consecutiveSendFailures++
+        val now = SystemClock.uptimeMillis()
+        if (now - lastSendFailureLog > SEND_FAILURE_LOG_MS) {
+            lastSendFailureLog = now
+            Log.w(TAG, "send failing ($consecutiveSendFailures in a row)", error)
+        }
+        if (consecutiveSendFailures == SEND_FAILURE_THRESHOLD) {
+            TrackingHub.updateStatus { it.copy(error = getString(R.string.error_send_failed)) }
+        }
     }
 
     /** Called from the iFacialMocap listener thread whenever a PC app says hello. */
@@ -248,6 +318,18 @@ class TrackingService : LifecycleService() {
             else -> PcLink.WAITING
         }
         TrackingHub.updateStatus { it.copy(protocol = protocol, pcAddress = host, pcLink = link) }
+    }
+
+    /**
+     * Wi-Fi power saving can hold outgoing UDP for 100ms+, especially with the screen dimmed.
+     * A low-latency lock keeps the radio awake while tracking runs.
+     */
+    private fun acquireWifiLock() {
+        val wifi = applicationContext.getSystemService(WifiManager::class.java) ?: return
+        wifiLock = wifi.createWifiLock(WifiManager.WIFI_MODE_FULL_LOW_LATENCY, "vrmdroid:tracking").apply {
+            setReferenceCounted(false)
+            runCatching { acquire() }
+        }
     }
 
     private fun fail(message: String, e: Throwable) {
@@ -282,6 +364,8 @@ class TrackingService : LifecycleService() {
         // last so a late result can't republish a stale frame after the reset.
         stopped = true
         tracker?.listener = null
+        getSystemService(DisplayManager::class.java).unregisterDisplayListener(displayListener)
+        wifiLock?.takeIf { it.isHeld }?.release()
         settings.prefs.unregisterOnSharedPreferenceChangeListener(prefsListener)
         cameraProvider?.unbindAll()
         cameraProvider = null
@@ -299,6 +383,8 @@ class TrackingService : LifecycleService() {
         private const val CHANNEL_ID = "tracking"
         private const val NOTIFICATION_ID = 1
         private const val ACTION_STOP = "com.ouor.vrmdroid.STOP"
+        private const val SEND_FAILURE_THRESHOLD = 30
+        private const val SEND_FAILURE_LOG_MS = 5000L
 
         fun start(context: Context) {
             ContextCompat.startForegroundService(context, Intent(context, TrackingService::class.java))

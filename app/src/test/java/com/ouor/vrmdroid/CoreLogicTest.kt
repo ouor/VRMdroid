@@ -122,3 +122,41 @@ class VrmPresetsTest {
         out.forEach { assert(it in 0f..1f) }
     }
 }
+
+class RotationTest {
+    @Test fun eulerRoundTrip() {
+        val e = com.ouor.vrmdroid.processing.Rotation.toEuler(
+            com.ouor.vrmdroid.processing.Rotation.fromEuler(-12f, 25f, 8f))
+        assertArrayEquals(floatArrayOf(-12f, 25f, 8f), e, 1e-3f)
+    }
+
+    /** Phone below the face: turning the head must read as pure yaw, not yaw + roll. */
+    @Test fun calibratedYawStaysPureWhenCameraIsBelow() {
+        val r = com.ouor.vrmdroid.processing.Rotation
+        val neutral = r.fromEuler(-20f, 0f, 0f)
+        // Head turned 30 degrees about its own vertical axis while the camera looks up at it.
+        val turned = FloatArray(9).also { out ->
+            val a = neutral; val b = r.fromEuler(0f, 30f, 0f)
+            for (i in 0 until 3) for (j in 0 until 3) out[i * 3 + j] = (0 until 3).sumOf { k -> (a[i * 3 + k] * b[k * 3 + j]).toDouble() }.toFloat()
+        }
+        val rel = r.toEuler(r.relative(neutral, turned))
+        assertArrayEquals(floatArrayOf(0f, 30f, 0f), rel, 1e-3f)
+    }
+}
+
+class HostValidationTest {
+    private fun ok(v: String) = com.ouor.vrmdroid.ui.ConnectActivity.isPlausibleHost(v)
+
+    @Test fun acceptsCompleteAddresses() {
+        assert(ok("192.168.0.10"))
+        assert(ok("10.0.0.1"))
+        assert(ok("my-pc.local"))
+    }
+
+    @Test fun rejectsPartialOrBroken() {
+        assert(!ok("192.168.0"))
+        assert(!ok("192.168.0."))
+        assert(!ok("300.1.1.1"))
+        assert(!ok("pc name"))
+    }
+}

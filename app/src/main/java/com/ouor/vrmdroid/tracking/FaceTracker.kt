@@ -16,9 +16,14 @@ interface FaceTracker : AutoCloseable {
     val name: String
 
     /**
-     * Submits a frame as delivered by the camera (unmirrored). [rotationDegrees] is the clockwise
-     * rotation that makes it upright. Ownership of [bitmap] passes to the tracker.
-     * The tracker may drop frames while busy.
+     * True when a new frame would be accepted. Callers check this before converting a camera
+     * image, so frames that would be dropped anyway cost nothing.
      */
-    fun submit(bitmap: Bitmap, rotationDegrees: Int, timestampMs: Long)
+    val isReady: Boolean
+
+    /**
+     * Submits an upright, unmirrored frame. The tracker may read [bitmap] until its result is
+     * delivered, so the caller must not overwrite it before then (see [isReady]).
+     */
+    fun submit(bitmap: Bitmap, timestampMs: Long)
 }

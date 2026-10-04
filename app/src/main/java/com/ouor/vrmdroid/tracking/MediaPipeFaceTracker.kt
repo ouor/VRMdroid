@@ -2,7 +2,6 @@ package com.ouor.vrmdroid.tracking
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.Matrix
 import android.os.SystemClock
 import android.util.Log
 import com.google.mediapipe.framework.image.BitmapImageBuilder
@@ -28,8 +27,7 @@ class MediaPipeFaceTracker(context: Context, useGpu: Boolean) : FaceTracker {
     private val busy = AtomicBoolean(false)
     @Volatile private var submittedAt = 0L
     private var lastTimestamp = -1L
-    private var frameSize = 0 to 0
-    @Volatile private var frameRotation = 0
+    @Volatile private var frameSize = 0 to 0
     private var lastDiagnosticMs = 0L
 
     /** MediaPipe category index -> [Arkit] ordinal, resolved lazily by name on first result. */
@@ -41,7 +39,8 @@ class MediaPipeFaceTracker(context: Context, useGpu: Boolean) : FaceTracker {
         while (created == null) {
             try {
                 created = FaceLandmarker.createFromOptions(context, options(delegate))
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
+                // Some devices fail GPU setup with native errors rather than exceptions.
                 if (delegate == Delegate.CPU) throw e
                 Log.w(TAG, "GPU delegate unavailable, falling back to CPU", e)
                 delegate = Delegate.CPU
@@ -72,22 +71,25 @@ class MediaPipeFaceTracker(context: Context, useGpu: Boolean) : FaceTracker {
         }
         .build()
 
-    override fun submit(bitmap: Bitmap, rotationDegrees: Int, timestampMs: Long) {
+    override val isReady: Boolean
+        get() {
+            // Watchdog: if MediaPipe never answered (e.g. GPU context lost), don't stall forever.
+            if (busy.get() && SystemClock.uptimeMillis() - submittedAt > STALL_MS) {
+                Log.w(TAG, "No result for ${STALL_MS}ms; resubmitting")
+                busy.set(false)
+            }
+            return !busy.get()
+        }
+
+    override fun submit(bitmap: Bitmap, timestampMs: Long) {
         // LIVE_STREAM queues internally; dropping while busy keeps latency at one frame.
         if (!busy.compareAndSet(false, true)) return
         // MediaPipe rejects non-increasing timestamps.
         val ts = if (timestampMs <= lastTimestamp) lastTimestamp + 1 else timestampMs
         lastTimestamp = ts
         submittedAt = SystemClock.uptimeMillis()
-        // Rotate upright ourselves rather than via ImageProcessingOptions: MediaPipe's handling of
-        // that option differed between devices, leaving landmarks/pose 90 degrees off on some.
-        val upright = if (rotationDegrees % 360 == 0) bitmap else {
-            val matrix = Matrix().apply { postRotate(rotationDegrees.toFloat()) }
-            Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, false)
-        }
-        frameRotation = rotationDegrees
-        frameSize = upright.width to upright.height
-        val image = BitmapImageBuilder(upright).build()
+        frameSize = bitmap.width to bitmap.height
+        val image = BitmapImageBuilder(bitmap).build()
         try {
             landmarker.detectAsync(image, ts)
         } catch (e: Exception) {
@@ -97,13 +99,14 @@ class MediaPipeFaceTracker(context: Context, useGpu: Boolean) : FaceTracker {
     }
 
     private fun onResult(result: FaceLandmarkerResult, @Suppress("UNUSED_PARAMETER") input: Any?) {
-        busy.set(false)
+        // Read per-frame fields before releasing `busy`: the next submit overwrites them.
         val elapsed = SystemClock.uptimeMillis() - submittedAt
-        val frame = convert(result, elapsed)
-        listener?.invoke(frame)
+        val size = frameSize
+        busy.set(false)
+        listener?.invoke(convert(result, elapsed, size))
     }
 
-    private fun convert(result: FaceLandmarkerResult, inferenceMs: Long): FaceFrame {
+    private fun convert(result: FaceLandmarkerResult, inferenceMs: Long, size: Pair<Int, Int>): FaceFrame {
         val ts = result.timestampMs()
         val faces = result.faceLandmarks()
         if (faces.isEmpty()) return FaceFrame.lost(ts)
@@ -143,7 +146,7 @@ class MediaPipeFaceTracker(context: Context, useGpu: Boolean) : FaceTracker {
 
         if (ts - lastDiagnosticMs > 3000) {
             lastDiagnosticMs = ts
-            Log.i(TAG, "rotation=$frameRotation upright=${frameSize.first}x${frameSize.second} " +
+            Log.i(TAG, "upright=${size.first}x${size.second} " +
                 "pitch=%.1f yaw=%.1f roll=%.1f z=%.2f".format(pitch, yaw, roll, z))
         }
 
@@ -154,8 +157,8 @@ class MediaPipeFaceTracker(context: Context, useGpu: Boolean) : FaceTracker {
             pitch = pitch, yaw = yaw, roll = roll,
             x = x, y = y, z = z,
             landmarks = landmarks,
-            imageWidth = frameSize.first,
-            imageHeight = frameSize.second,
+            imageWidth = size.first,
+            imageHeight = size.second,
             inferenceMs = inferenceMs,
         )
     }
@@ -168,5 +171,6 @@ class MediaPipeFaceTracker(context: Context, useGpu: Boolean) : FaceTracker {
     companion object {
         private const val TAG = "MediaPipeFaceTracker"
         const val MODEL_ASSET = "face_landmarker.task"
+        private const val STALL_MS = 1000L
     }
 }
