@@ -66,14 +66,6 @@
             android:text="@string/empty_help" />
     </LinearLayout>
 
-    <TextView
-        android:id="@+id/avatar_loading"
-        style="@style/Text.Vrmdroid.Caption"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:text="@string/avatar_loading"
-        android:visibility="gone" />
 
     <!-- Everything below hides in "clean screen" mode. -->
     <FrameLayout

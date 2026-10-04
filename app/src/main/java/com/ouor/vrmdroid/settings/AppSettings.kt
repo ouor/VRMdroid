@@ -7,8 +7,8 @@ import androidx.preference.PreferenceManager
 enum class OutputProtocol { IFACIALMOCAP, VMC, NONE }
 
 /**
- * Typed view over the preference screen in `res/xml/preferences.xml`. Keys are shared with that
- * file, so change them in both places.
+ * Typed view over the app's SharedPreferences. Keys are also used by the settings and sheet UIs
+ * (via [com.ouor.vrmdroid.ui.Rows]), so keep them stable: renaming one loses users' values.
  */
 class AppSettings(val prefs: SharedPreferences) {
 

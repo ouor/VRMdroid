@@ -1,6 +1,6 @@
 package com.ouor.vrmdroid.processing
 
-import com.ouor.vrmdroid.settings.AppSettings
+import com.ouor.vrmdroid.settings.TrackingConfig
 import com.ouor.vrmdroid.tracking.Arkit
 import com.ouor.vrmdroid.tracking.FaceFrame
 
@@ -27,7 +27,7 @@ class FaceProcessor {
 
     fun requestCalibration() { calibrateRequested = true }
 
-    fun process(raw: FaceFrame, settings: AppSettings): TrackingResult {
+    fun process(raw: FaceFrame, config: TrackingConfig): TrackingResult {
         if (!raw.detected) {
             // Hold the last pose so the avatar doesn't snap while the face is briefly lost.
             val last = lastResult
@@ -39,7 +39,7 @@ class FaceProcessor {
                 imageHeight = raw.imageHeight,
             )
         }
-        configureFilters(settings.smoothing)
+        configureFilters(config.smoothing)
 
         if (calibrateRequested) {
             neutralRotation = Rotation.fromEuler(raw.pitch, raw.yaw, raw.roll)
@@ -53,7 +53,7 @@ class FaceProcessor {
         for (i in 0 until Arkit.COUNT) {
             shapes[i] = shapeFilters[i].filter(raw.blendshapes[i], t)
         }
-        applySensitivity(shapes, settings)
+        applySensitivity(shapes, config)
 
         val pose = floatArrayOf(raw.pitch, raw.yaw, raw.roll, raw.x, raw.y, raw.z)
         // Rotation relative to the calibrated pose, not per-angle subtraction: with the phone
@@ -74,7 +74,7 @@ class FaceProcessor {
         )
         val result = TrackingResult(
             subject = subject,
-            avatar = toAvatar(subject, pose, settings.mirror),
+            avatar = toAvatar(subject, pose, config.mirror),
             landmarks = raw.landmarks,
             imageWidth = raw.imageWidth,
             imageHeight = raw.imageHeight,
@@ -95,16 +95,16 @@ class FaceProcessor {
         for (i in 3 until 6) poseFilters[i].apply { minCutoff = poseCutoff; beta = 4f }
     }
 
-    private fun applySensitivity(shapes: FloatArray, settings: AppSettings) {
+    private fun applySensitivity(shapes: FloatArray, config: TrackingConfig) {
         // Blink: MediaPipe reports ~0.1-0.3 for open, relaxed eyes, which made avatars look
         // sleepy when simply scaled. Ignore that floor and stretch the rest to fully closed.
-        val blink = settings.blinkSensitivity / 100f
+        val blink = config.blinkSensitivity / 100f
         for (s in BLINK_SHAPES) {
             shapes[s.ordinal] = ((shapes[s.ordinal] * blink - BLINK_OPEN_FLOOR) / BLINK_RANGE)
         }
-        val mouth = settings.mouthSensitivity / 100f * MOUTH_GAIN
+        val mouth = config.mouthSensitivity / 100f * MOUTH_GAIN
         for (s in MOUTH_SHAPES) shapes[s.ordinal] *= mouth
-        if (settings.linkEyes) {
+        if (config.linkEyes) {
             for ((l, r) in EYE_PAIRS) {
                 val avg = (shapes[l.ordinal] + shapes[r.ordinal]) * 0.5f
                 shapes[l.ordinal] = avg

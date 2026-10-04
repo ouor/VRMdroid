@@ -2,7 +2,7 @@ package com.ouor.vrmdroid.output
 
 import com.ouor.vrmdroid.processing.TrackingResult
 import com.ouor.vrmdroid.processing.VrmPresets
-import com.ouor.vrmdroid.settings.AppSettings
+import com.ouor.vrmdroid.settings.TrackingConfig
 import com.ouor.vrmdroid.tracking.Arkit
 import java.net.DatagramPacket
 import java.net.DatagramSocket
@@ -11,7 +11,8 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
 /**
- * Feeds the Unity avatar preview, which runs in a separate process (`:unity`), over localhost UDP.
+ * Feeds the Unity avatar view embedded in MainActivity over localhost UDP. (Same process, but
+ * UDP keeps the Unity side decoupled and lets the Editor receive the same stream for testing.)
  *
  * Packet: ASCII "VDF1" followed by [FLOAT_COUNT] little-endian floats laid out as described by
  * the `I_*` constants. Keep in sync with `unity/Assets/VrmDroid/Scripts/TrackingPacket.cs`.
@@ -25,7 +26,7 @@ class PreviewSender(host: String = "127.0.0.1", port: Int = PORT) : TrackingSend
     private val buffer = ByteBuffer.allocate(4 + FLOAT_COUNT * 4).order(ByteOrder.LITTLE_ENDIAN)
     private val presets = FloatArray(VrmPresets.COUNT)
 
-    override fun send(result: TrackingResult, settings: AppSettings) {
+    override fun send(result: TrackingResult, config: TrackingConfig) {
         val a = result.avatar
         buffer.clear()
         buffer.put(MAGIC)

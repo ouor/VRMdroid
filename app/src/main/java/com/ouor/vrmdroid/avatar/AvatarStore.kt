@@ -3,6 +3,7 @@ package com.ouor.vrmdroid.avatar
 import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
+import com.ouor.vrmdroid.R
 import java.io.File
 
 /**
@@ -11,12 +12,9 @@ import java.io.File
  */
 object AvatarStore {
     const val FILE_NAME = "avatar.vrm"
-    private const val NAME_FILE = "avatar.name"
 
     fun file(context: Context): File = File(context.getExternalFilesDir(null), FILE_NAME)
 
-    fun displayName(context: Context): String? =
-        File(context.getExternalFilesDir(null), NAME_FILE).takeIf { it.exists() }?.readText()
 
     /** Copies the picked document into place atomically. Call off the main thread. */
     fun import(context: Context, uri: Uri): String {
@@ -24,11 +22,11 @@ object AvatarStore {
         val dir = context.getExternalFilesDir(null)!!
         val tmp = File(dir, "$FILE_NAME.tmp")
         context.contentResolver.openInputStream(uri).use { input ->
-            requireNotNull(input) { "파일을 열 수 없어요" }
+            requireNotNull(input) { context.getString(R.string.error_file_open) }
             val header = ByteArray(4)
             tmp.outputStream().use { out ->
-                val n = input.read(header)
-                require(n == 4 && String(header, Charsets.US_ASCII) == "glTF") { "VRM 파일이 아니에요. .vrm 파일을 골라 주세요" }
+                val n = input.readNBytes(header, 0, header.size)
+                require(n == 4 && String(header, Charsets.US_ASCII) == "glTF") { context.getString(R.string.error_not_vrm) }
                 out.write(header)
                 input.copyTo(out)
             }
@@ -38,7 +36,6 @@ object AvatarStore {
             tmp.copyTo(target, overwrite = true)
             tmp.delete()
         }
-        File(dir, NAME_FILE).writeText(name)
         return name
     }
 

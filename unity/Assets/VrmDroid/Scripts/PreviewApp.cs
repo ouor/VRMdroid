@@ -30,6 +30,7 @@ namespace VrmDroid
         float _orbitPitch = DefaultPitch;
         float _lastPinch;
         Vector2 _lastMid;
+        int _pinchIdA = -1, _pinchIdB = -1;
         // After a two-finger gesture, ignore the remaining finger until all are lifted,
         // so lifting one finger doesn't make the view jump into an orbit.
         bool _multiTouchUntilRelease;
@@ -99,19 +100,30 @@ namespace VrmDroid
             var touch = Touchscreen.current;
             if (touch != null)
             {
+                // Use the first two fingers actually down (slot order isn't finger order).
                 int active = 0;
-                foreach (var t in touch.touches) if (t.isInProgress) active++;
+                UnityEngine.InputSystem.Controls.TouchControl first = null, second = null;
+                foreach (var t in touch.touches)
+                {
+                    if (!t.isInProgress) continue;
+                    active++;
+                    if (first == null) first = t; else if (second == null) second = t;
+                }
 
                 if (active >= 2)
                 {
                     // Two fingers: spread = zoom, moving together = pan, both at once.
-                    var a = touch.touches[0].position.ReadValue();
-                    var b = touch.touches[1].position.ReadValue();
+                    var a = first.position.ReadValue();
+                    var b = second.position.ReadValue();
                     var d = Vector2.Distance(a, b);
                     var mid = (a + b) * 0.5f;
+                    // A different pair of fingers: restart from here instead of jumping.
+                    var idA = first.touchId.ReadValue();
+                    var idB = second.touchId.ReadValue();
+                    if (idA != _pinchIdA || idB != _pinchIdB) { _lastPinch = 0f; _pinchIdA = idA; _pinchIdB = idB; }
                     if (_lastPinch > 0f)
                     {
-                        Zoom((_lastPinch - d) / Screen.dpi * 0.5f);
+                        Zoom((_lastPinch - d) / Mathf.Max(Screen.dpi, 100f) * 0.5f);
                         Pan(mid - _lastMid);
                     }
                     _lastPinch = d;

@@ -18,7 +18,6 @@
     <string name="vrm_help_title">VRM 파일 구하기</string>
     <string name="vrm_help_body">VRM은 버튜버 아바타 파일이에요.\n\n• VRoid Studio로 직접 만들 수 있어요.\n• VRoid Hub, BOOTH 같은 곳에서 받을 수 있어요. 사용 조건을 꼭 확인해 주세요.\n\n받은 .vrm 파일을 폰에 저장한 뒤 \'아바타 고르기\'를 눌러 주세요.</string>
     <string name="ok">확인</string>
-    <string name="avatar_loading">아바타를 불러오고 있어요…</string>
     <string name="vrm_loaded">%1$s 아바타로 바꿨어요</string>
     <string name="vrm_load_failed">불러오지 못했어요. %1$s</string>
     <string name="camera_permission_needed">표정을 읽으려면 카메라 권한이 필요해요</string>
@@ -205,6 +204,13 @@
     <!-- Debug console -->
     <string name="set_data_console">실시간 디버깅 콘솔</string>
     <string name="set_data_console_desc">PC로 보내는 패킷과 트래킹 값을 메인 화면에 표시해요</string>
+
+    <!-- Misc -->
+    <string name="overlay_tracking_off">트래킹이 꺼져 있어요</string>
+    <string name="overlay_searching">얼굴을 찾고 있어요…</string>
+    <string name="set_send_rate_value">%1$s회/초</string>
+    <string name="error_file_open">파일을 열 수 없어요</string>
+    <string name="error_not_vrm">VRM 파일이 아니에요. .vrm 파일을 골라 주세요</string>
 
     <!-- Notification -->
     <string name="notification_channel">얼굴 인식</string>

@@ -47,8 +47,6 @@ class OnboardingActivity : AppCompatActivity() {
     private var step = Step.WELCOME
     /** Steps actually shown; the camera step is left out when permission was already given. */
     private lateinit var steps: List<Step>
-    private val density by lazy { resources.displayMetrics.density }
-    private fun dp(v: Int) = (v * density).toInt()
 
     private val requestPermissions = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -235,35 +233,6 @@ class OnboardingActivity : AppCompatActivity() {
         body.addView(row, spaced(if (body.childCount <= 3) 32 else 16))
     }
 
-    private fun choice(icon: Int, title: String, desc: String, onClick: () -> Unit) {
-        val card = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            setBackgroundResource(R.drawable.bg_card)
-            clipToOutline = true
-            setPadding(dp(16), dp(20), dp(12), dp(20))
-            isClickable = true
-            isFocusable = true
-            foreground = themeRipple(context)
-            setOnClickListener { onClick() }
-        }
-        card.addView(ImageView(this).apply {
-            setImageResource(icon)
-            setBackgroundResource(R.drawable.bg_icon_circle)
-            imageTintList = ContextCompat.getColorStateList(context, R.color.brand_text)
-            setPadding(dp(10), dp(10), dp(10), dp(10))
-        }, LinearLayout.LayoutParams(dp(44), dp(44)))
-        val labels = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(14), 0, dp(8), 0) }
-        labels.addView(TextView(this).apply { setTextAppearance(R.style.Text_Vrmdroid_Body); this.text = title; paint.isFakeBoldText = true })
-        labels.addView(caption(desc))
-        card.addView(labels, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-        card.addView(ImageView(this).apply {
-            setImageResource(R.drawable.ic_chevron_right)
-            imageTintList = ContextCompat.getColorStateList(context, R.color.text_tertiary)
-        }, LinearLayout.LayoutParams(dp(20), dp(20)))
-        body.addView(card, spaced(if (body.childCount == 2) 28 else 12))
-    }
-
     private fun primary(text: String, onClick: () -> Unit) {
         primary.visibility = View.VISIBLE
         primary.text = text
@@ -276,7 +245,9 @@ class OnboardingActivity : AppCompatActivity() {
         secondary.setOnClickListener { onClick() }
     }
 
-    private fun display(text: String) = TextView(this).apply { setTextAppearance(R.style.Text_Vrmdroid_Display); this.text = text }
-    private fun caption(text: String) = TextView(this).apply { setTextAppearance(R.style.Text_Vrmdroid_Caption); textSize = 15f; this.text = text }
-    private fun spaced(top: Int) = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(top) }
+    private fun display(text: String) = displayText(text)
+    private fun caption(text: String) = captionText(text)
+    private fun spaced(top: Int) = stacked(top)
+    private fun choice(icon: Int, title: String, desc: String, onClick: () -> Unit) =
+        body.addView(optionCard(icon, title, desc, verticalPaddingDp = 20, onClick = onClick), spaced(if (body.childCount == 2) 28 else 12))
 }

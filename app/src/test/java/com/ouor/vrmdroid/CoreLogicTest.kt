@@ -7,11 +7,9 @@ import com.ouor.vrmdroid.processing.VrmPresets
 import com.ouor.vrmdroid.tracking.Arkit
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.nio.ByteBuffer
-import kotlin.math.abs
-import kotlin.math.cos
-import kotlin.math.sin
 
 class ArkitTest {
     @Test fun has52Shapes() = assertEquals(52, Arkit.entries.size)
@@ -88,38 +86,17 @@ class QuatTest {
     }
 }
 
-/** Mirrors the Euler extraction in MediaPipeFaceTracker for R = Ry(yaw) Rx(pitch) Rz(roll). */
-class EulerExtractionTest {
-    private fun mat(pitch: Double, yaw: Double, roll: Double): Array<DoubleArray> {
-        val (p, y, r) = listOf(pitch, yaw, roll).map { Math.toRadians(it) }
-        val rx = arrayOf(doubleArrayOf(1.0, 0.0, 0.0), doubleArrayOf(0.0, cos(p), -sin(p)), doubleArrayOf(0.0, sin(p), cos(p)))
-        val ry = arrayOf(doubleArrayOf(cos(y), 0.0, sin(y)), doubleArrayOf(0.0, 1.0, 0.0), doubleArrayOf(-sin(y), 0.0, cos(y)))
-        val rz = arrayOf(doubleArrayOf(cos(r), -sin(r), 0.0), doubleArrayOf(sin(r), cos(r), 0.0), doubleArrayOf(0.0, 0.0, 1.0))
-        fun mul(a: Array<DoubleArray>, b: Array<DoubleArray>) =
-            Array(3) { i -> DoubleArray(3) { j -> (0 until 3).sumOf { a[i][it] * b[it][j] } } }
-        return mul(mul(ry, rx), rz)
-    }
-
-    @Test fun roundTrip() {
-        val m = mat(-12.0, 25.0, 8.0)
-        val pitch = Math.toDegrees(Math.asin(-m[1][2]))
-        val yaw = Math.toDegrees(Math.atan2(m[0][2], m[2][2]))
-        val roll = Math.toDegrees(Math.atan2(m[1][0], m[1][1]))
-        assert(abs(pitch + 12) < 1e-9 && abs(yaw - 25) < 1e-9 && abs(roll - 8) < 1e-9)
-    }
-}
-
 class VrmPresetsTest {
     @Test fun openJawIsA() {
         val s = FloatArray(Arkit.COUNT).also { it[Arkit.JawOpen.ordinal] = 0.7f }
         val out = VrmPresets.compute(s)
-        assert(out[VrmPresets.Preset.A.ordinal] > 0.8f)
+        assertTrue(out[VrmPresets.Preset.A.ordinal] > 0.8f)
         assertEquals(0f, out[VrmPresets.Preset.O.ordinal], 0f)
     }
 
     @Test fun outputsClamped() {
         val out = VrmPresets.compute(FloatArray(Arkit.COUNT) { 1f })
-        out.forEach { assert(it in 0f..1f) }
+        out.forEach { assertTrue(it in 0f..1f) }
     }
 }
 
@@ -148,15 +125,15 @@ class HostValidationTest {
     private fun ok(v: String) = com.ouor.vrmdroid.ui.ConnectActivity.isPlausibleHost(v)
 
     @Test fun acceptsCompleteAddresses() {
-        assert(ok("192.168.0.10"))
-        assert(ok("10.0.0.1"))
-        assert(ok("my-pc.local"))
+        assertTrue(ok("192.168.0.10"))
+        assertTrue(ok("10.0.0.1"))
+        assertTrue(ok("my-pc.local"))
     }
 
     @Test fun rejectsPartialOrBroken() {
-        assert(!ok("192.168.0"))
-        assert(!ok("192.168.0."))
-        assert(!ok("300.1.1.1"))
-        assert(!ok("pc name"))
+        assertTrue(!ok("192.168.0"))
+        assertTrue(!ok("192.168.0."))
+        assertTrue(!ok("300.1.1.1"))
+        assertTrue(!ok("pc name"))
     }
 }

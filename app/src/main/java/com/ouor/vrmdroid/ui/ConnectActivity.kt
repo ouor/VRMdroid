@@ -50,8 +50,6 @@ class ConnectActivity : AppCompatActivity() {
     private var program: Program? = null
     private var statusJob: Job? = null
     private var pcAddressInput: EditText? = null
-    private val density by lazy { resources.displayMetrics.density }
-    private fun dp(v: Int) = (v * density).toInt()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -131,35 +129,6 @@ class ConnectActivity : AppCompatActivity() {
             settings.protocolValue = "none"
             finishFlow()
         }
-    }
-
-    private fun option(icon: Int, title: String, desc: String, onClick: () -> Unit) {
-        val card = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            setBackgroundResource(R.drawable.bg_card)
-            clipToOutline = true
-            setPadding(dp(16), dp(16), dp(12), dp(16))
-            isClickable = true
-            isFocusable = true
-            foreground = themeRipple(context)
-            setOnClickListener { onClick() }
-        }
-        card.addView(ImageView(this).apply {
-            setImageResource(icon)
-            setBackgroundResource(R.drawable.bg_icon_circle)
-            imageTintList = ContextCompat.getColorStateList(context, R.color.brand_text)
-            setPadding(dp(10), dp(10), dp(10), dp(10))
-        }, LinearLayout.LayoutParams(dp(44), dp(44)))
-        val labels = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(14), 0, dp(8), 0) }
-        labels.addView(TextView(this).apply { setTextAppearance(R.style.Text_Vrmdroid_Body); text = title; paint.isFakeBoldText = true })
-        labels.addView(caption(desc))
-        card.addView(labels, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-        card.addView(ImageView(this).apply {
-            setImageResource(R.drawable.ic_chevron_right)
-            imageTintList = ContextCompat.getColorStateList(context, R.color.text_tertiary)
-        }, LinearLayout.LayoutParams(dp(20), dp(20)))
-        body.addView(card, spaced(12))
     }
 
     // Step 2: follow the steps; the status card updates live.
@@ -314,9 +283,11 @@ class ConnectActivity : AppCompatActivity() {
         return row
     }
 
-    private fun display(text: String) = TextView(this).apply { setTextAppearance(R.style.Text_Vrmdroid_Display); this.text = text }
-    private fun caption(text: String) = TextView(this).apply { setTextAppearance(R.style.Text_Vrmdroid_Caption); this.text = text }
-    private fun spaced(top: Int) = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(top) }
+    private fun display(text: String) = displayText(text)
+    private fun caption(text: String) = captionText(text)
+    private fun spaced(top: Int) = stacked(top)
+    private fun option(icon: Int, title: String, desc: String, onClick: () -> Unit) =
+        body.addView(optionCard(icon, title, desc, onClick = onClick), spaced(12))
 
     /** The PC can only connect while tracking runs, so start it if we're allowed to. */
     private fun ensureTracking() {

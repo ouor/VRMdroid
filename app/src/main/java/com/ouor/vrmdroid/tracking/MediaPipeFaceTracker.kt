@@ -10,9 +10,8 @@ import com.google.mediapipe.tasks.core.Delegate
 import com.google.mediapipe.tasks.vision.core.RunningMode
 import com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarker
 import com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarkerResult
+import com.ouor.vrmdroid.processing.Rotation
 import java.util.concurrent.atomic.AtomicBoolean
-import kotlin.math.asin
-import kotlin.math.atan2
 
 /**
  * MediaPipe Face Landmarker backend. It natively outputs ARKit-named blendshapes (minus
@@ -136,9 +135,12 @@ class MediaPipeFaceTracker(context: Context, useGpu: Boolean) : FaceTracker {
             val m = matrices.firstOrNull() ?: return@ifPresent
             // Column-major 4x4: element (row, col) = m[col * 4 + row]. Units are centimeters.
             fun r(row: Int, col: Int) = m[col * 4 + row]
-            pitch = Math.toDegrees(asin((-r(1, 2)).coerceIn(-1f, 1f).toDouble())).toFloat()
-            yaw = Math.toDegrees(atan2(r(0, 2), r(2, 2)).toDouble()).toFloat()
-            roll = Math.toDegrees(atan2(r(1, 0), r(1, 1)).toDouble()).toFloat()
+            val euler = Rotation.toEuler(floatArrayOf(
+                r(0, 0), r(0, 1), r(0, 2),
+                r(1, 0), r(1, 1), r(1, 2),
+                r(2, 0), r(2, 1), r(2, 2),
+            ))
+            pitch = euler[0]; yaw = euler[1]; roll = euler[2]
             x = r(0, 3) * 0.01f
             y = r(1, 3) * 0.01f
             z = r(2, 3) * 0.01f

@@ -183,7 +183,7 @@ class SettingsActivity : AppCompatActivity() {
         rows.switch(card, AppSettings.KEY_DATA_CONSOLE, getString(R.string.set_data_console), getString(R.string.set_data_console_desc), false)
         rows.divider(card)
         rows.textField(card, AppSettings.KEY_SEND_RATE, getString(R.string.set_send_rate), getString(R.string.set_send_rate_desc), "60", numeric = true,
-            display = { "${it.ifEmpty { "60" }}회/초" })
+            display = { getString(R.string.set_send_rate_value, it.ifEmpty { "60" }) })
         rows.switch(card, AppSettings.KEY_USE_GPU, getString(R.string.set_gpu), getString(R.string.set_gpu_desc), true)
     }
 
