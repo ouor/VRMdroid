@@ -1,0 +1,41 @@
+# Gradle / Android Studio
+*.iml
+.gradle
+.kotlin
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+/.idea/deploymentTargetSelector.xml
+/.idea/deviceManager.xml
+.DS_Store
+
+# Unity (generated; the exported Android library lives in unity/Builds)
+/unity/Library
+/unity/Temp
+/unity/Logs
+/unity/UserSettings
+/unity/obj
+/unity/Builds
+/unity/.vs
+/unity/.vscode
+/unity/*.csproj
+/unity/*.sln
+
+# Claude Code local state
+/.claude/*.lock
+/.claude/settings.local.json
+
+# UniVRM is installed locally as embedded packages (not tracked; see README)
+/unity/Packages/com.vrmc.gltf
+/unity/Packages/com.vrmc.vrm
+
+# Local review notes and screenshots
+/docs

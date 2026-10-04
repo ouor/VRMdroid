@@ -1,0 +1,128 @@
+package com.ouor.vrmdroid.output
+
+import android.os.SystemClock
+import com.ouor.vrmdroid.processing.TrackingResult
+import com.ouor.vrmdroid.processing.VrmPresets
+import com.ouor.vrmdroid.settings.AppSettings
+import com.ouor.vrmdroid.settings.OutputProtocol
+import com.ouor.vrmdroid.tracking.Arkit
+import java.net.DatagramPacket
+import java.net.DatagramSocket
+import java.net.InetSocketAddress
+
+/**
+ * VMC protocol (OSC over UDP) performer -> marionette sender.
+ * Spec: https://protocol.vmc.info/english
+ *
+ * Sends head/neck/eye bone rotations, head translation as a root offset, and blendshape values
+ * (VRM presets and/or ARKit perfect-sync names). Bone positions are sent as zero; common
+ * receivers (VSeeFace, VNyan, Warudo) only apply rotations for non-root bones.
+ */
+class VmcSender(private val host: String, private val port: Int) : TrackingSender {
+
+    override val destination = "VMC → $host:$port"
+
+    private val socket = DatagramSocket()
+    private val address = InetSocketAddress(host, port)
+    private val osc = OscWriter()
+    private val presets = FloatArray(VrmPresets.COUNT)
+    private val startTime = SystemClock.elapsedRealtime()
+
+    /** Decoded view of this frame's OSC messages, built only while the console is shown. */
+    private val decoded = StringBuilder(1024)
+    private var frameBytes = 0
+
+    override fun send(result: TrackingResult, settings: AppSettings) {
+        val avatar = result.avatar
+        decoded.setLength(0)
+        frameBytes = 0
+        osc.beginBundle()
+        osc.message("/VMC/Ext/OK").i(if (avatar.detected) 1 else 0).end()
+        osc.message("/VMC/Ext/T").f((SystemClock.elapsedRealtime() - startTime) / 1000f).end()
+
+        // Head translation moves the whole avatar via the root transform (VSeeFace applies it
+        // unless it tracks the lower body itself). Offset is relative to the calibrated pose.
+        if (settings.vmcSendPosition) {
+            val k = settings.vmcPositionScale / 100f
+            val p = avatar.headPosition
+            osc.message("/VMC/Ext/Root/Pos").s("root")
+                .f(p[0] * k).f(p[1] * k).f(p[2] * k)
+                .f(0f).f(0f).f(0f).f(1f)
+                .end()
+            if (SentDataMonitor.enabled) {
+                decoded.append(String.format(java.util.Locale.US, "root(%.2f,%.2f,%.2f) ", p[0] * k, p[1] * k, p[2] * k))
+            }
+        }
+
+        // Split the head rotation between neck and head for a more natural bend.
+        val head = avatar.headRotation
+        val neck = slerpFromIdentity(head, NECK_SHARE)
+        val headLocal = slerpFromIdentity(head, 1f - NECK_SHARE)
+        bone("Neck", neck)
+        bone("Head", headLocal)
+        bone("LeftEye", avatar.leftEye)
+        bone("RightEye", avatar.rightEye)
+        flush()
+
+        osc.beginBundle()
+        if (settings.vmcSendVrmPresets) {
+            VrmPresets.compute(avatar.blendshapes, presets)
+            for (p in VrmPresets.Preset.entries) {
+                if (!settings.vmcSendEmotions && p in VrmPresets.EMOTIONS) continue
+                blend(p.vrm0, presets[p.ordinal])
+            }
+        }
+        if (settings.vmcSendPerfectSync) {
+            for (shape in Arkit.entries) blend(shape.perfectSyncName, avatar.blendshapes[shape.ordinal])
+        }
+        osc.message("/VMC/Ext/Blend/Apply").end()
+        flush()
+        SentDataMonitor.record(OutputProtocol.VMC, "$host:$port", decoded.toString(), result, frameBytes)
+    }
+
+    private fun bone(name: String, q: FloatArray) {
+        if (SentDataMonitor.enabled) {
+            decoded.append(name).append(String.format(java.util.Locale.US, "(%.2f,%.2f,%.2f,%.2f) ", q[0], q[1], q[2], q[3]))
+        }
+        osc.message("/VMC/Ext/Bone/Pos").s(name)
+            .f(0f).f(0f).f(0f)
+            .f(q[0]).f(q[1]).f(q[2]).f(q[3])
+            .end()
+    }
+
+    private fun blend(name: String, value: Float) {
+        if (SentDataMonitor.enabled && value >= 0.01f) {
+            decoded.append(name).append(String.format(java.util.Locale.US, " %.2f ", value))
+        }
+        osc.message("/VMC/Ext/Blend/Val").s(name).f(value).end()
+        // Keep datagrams near the Ethernet MTU; Apply comes in the last bundle.
+        if (osc.size > MAX_BUNDLE_BYTES) {
+            flush()
+            osc.beginBundle()
+        }
+    }
+
+    private fun flush() {
+        socket.send(DatagramPacket(osc.bytes, 0, osc.size, address))
+        frameBytes += osc.size
+    }
+
+    override fun close() = socket.close()
+
+    companion object {
+        private const val NECK_SHARE = 0.3f
+        private const val MAX_BUNDLE_BYTES = 1200
+
+        /** Rotation `t` of the way from identity to q (q assumed normalized, w >= 0 path). */
+        fun slerpFromIdentity(q: FloatArray, t: Float): FloatArray {
+            val w = q[3].coerceIn(-1f, 1f)
+            val sign = if (w < 0) -1f else 1f
+            val angle = 2.0 * Math.acos((w * sign).toDouble())
+            val s = Math.sqrt((1.0 - w * w).coerceAtLeast(0.0))
+            if (s < 1e-6) return floatArrayOf(0f, 0f, 0f, 1f)
+            val half = angle * t / 2.0
+            val k = (Math.sin(half) / s).toFloat() * sign
+            return floatArrayOf(q[0] * k, q[1] * k, q[2] * k, Math.cos(half).toFloat())
+        }
+    }
+}

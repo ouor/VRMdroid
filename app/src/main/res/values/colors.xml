@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Surfaces: deep violet-navy instead of pure black. -->
+    <color name="bg">#FF0F0E17</color>
+    <color name="surface">#FF1A1826</color>
+    <color name="surface_high">#FF24212F</color>
+    <color name="outline">#FF3A3648</color>
+    <!-- Behind the avatar; Unity clears to the same color. -->
+    <color name="stage">#FF1E1A2E</color>
+
+    <!-- The one brand color. -->
+    <color name="brand">#FF8B5CF6</color>
+    <color name="brand_pressed">#FF7C4FE6</color>
+    <color name="brand_container">#FF2E2350</color>
+    <color name="on_brand">#FFFFFFFF</color>
+
+    <!-- Text. -->
+    <color name="text_primary">#FFF4F2FA</color>
+    <color name="text_secondary">#FFA8A3B8</color>
+    <color name="text_tertiary">#FF6F6A80</color>
+
+    <!-- Status colors: only ever used to signal state. -->
+    <color name="status_ok">#FF34D399</color>
+    <color name="status_wait">#FFFBBF24</color>
+    <color name="status_error">#FFF87171</color>
+    <color name="status_idle">#FF8A8698</color>
+
+    <color name="scrim">#CC0F0E17</color>
+    <color name="pill_bg">#B31A1826</color>
+</resources>

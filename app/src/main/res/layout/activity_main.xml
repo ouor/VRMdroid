@@ -1,0 +1,369 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/stage">
+
+    <!-- The avatar. The Unity view is inserted here when available. -->
+    <FrameLayout
+        android:id="@+id/stage"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- No avatar yet: one clear next step. -->
+    <LinearLayout
+        android:id="@+id/empty_state"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:paddingHorizontal="32dp"
+        android:visibility="gone">
+
+        <ImageView
+            android:layout_width="88dp"
+            android:layout_height="88dp"
+            android:background="@drawable/bg_icon_circle"
+            android:contentDescription="@null"
+            android:padding="22dp"
+            android:src="@drawable/ic_face"
+            app:tint="@color/brand" />
+
+        <TextView
+            style="@style/Text.Vrmdroid.Title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="@string/empty_title" />
+
+        <TextView
+            style="@style/Text.Vrmdroid.Caption"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center"
+            android:text="@string/empty_body" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/empty_cta"
+            style="@style/Widget.Vrmdroid.Button.Primary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="@string/empty_cta"
+            app:icon="@drawable/ic_folder"
+            app:iconGravity="textStart" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/empty_help"
+            style="@style/Widget.Vrmdroid.Button.Text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/empty_help" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/avatar_loading"
+        style="@style/Text.Vrmdroid.Caption"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:text="@string/avatar_loading"
+        android:visibility="gone" />
+
+    <!-- Everything below hides in "clean screen" mode. -->
+    <FrameLayout
+        android:id="@+id/chrome"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="140dp"
+            android:background="@drawable/bg_top_scrim" />
+
+        <LinearLayout
+            android:id="@+id/top_bar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="12dp">
+
+            <LinearLayout
+                android:id="@+id/status_pill"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:background="@drawable/bg_pill"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="14dp"
+                android:paddingEnd="16dp">
+
+                <View
+                    android:id="@+id/status_dot"
+                    android:layout_width="8dp"
+                    android:layout_height="8dp"
+                    android:background="@drawable/bg_dot" />
+
+                <TextView
+                    android:id="@+id/status_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:maxLines="1"
+                    android:textColor="@color/text_primary"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <ImageView
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:layout_marginStart="2dp"
+                    android:contentDescription="@string/status_details"
+                    android:src="@drawable/ic_chevron_right"
+                    app:tint="@color/text_secondary" />
+            </LinearLayout>
+
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <ImageButton
+                android:id="@+id/hide_ui"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="@drawable/bg_round_button"
+                android:contentDescription="@string/action_hide_ui"
+                android:src="@drawable/ic_visibility_off"
+                app:tint="@color/text_primary" />
+
+            <ImageButton
+                android:id="@+id/settings"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/bg_round_button"
+                android:contentDescription="@string/action_settings"
+                android:src="@drawable/ic_settings"
+                app:tint="@color/text_primary" />
+        </LinearLayout>
+
+        <com.ouor.vrmdroid.ui.FaceOverlayView
+            android:id="@+id/face_preview"
+            android:layout_width="88dp"
+            android:layout_height="88dp"
+            android:layout_gravity="top|end"
+            android:layout_marginTop="72dp"
+            android:layout_marginEnd="16dp"
+            android:visibility="gone" />
+
+        <LinearLayout
+            android:id="@+id/controls"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:background="@drawable/bg_bottom_scrim"
+            android:orientation="vertical"
+            android:paddingHorizontal="20dp"
+            android:paddingTop="56dp"
+            android:paddingBottom="16dp">
+
+            <!-- Real-time debug console: what is sent to the PC. Off by default. -->
+            <com.ouor.vrmdroid.ui.DataConsoleView
+                android:id="@+id/data_console"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="14dp"
+                android:visibility="gone" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <LinearLayout
+                    android:id="@+id/action_calibrate"
+                    style="@style/ActionItem">
+
+                    <ImageView
+                        style="@style/ActionItem.Icon"
+                        android:src="@drawable/ic_target" />
+
+                    <TextView
+                        style="@style/ActionItem.Label"
+                        android:text="@string/action_calibrate" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/action_adjust"
+                    style="@style/ActionItem">
+
+                    <ImageView
+                        style="@style/ActionItem.Icon"
+                        android:src="@drawable/ic_tune" />
+
+                    <TextView
+                        style="@style/ActionItem.Label"
+                        android:text="@string/action_adjust" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/action_avatar"
+                    style="@style/ActionItem">
+
+                    <ImageView
+                        style="@style/ActionItem.Icon"
+                        android:src="@drawable/ic_face" />
+
+                    <TextView
+                        style="@style/ActionItem.Label"
+                        android:text="@string/action_avatar" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/primary"
+                style="@style/Widget.Vrmdroid.Button.Primary"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/start"
+                app:icon="@drawable/ic_play"
+                app:iconGravity="textStart" />
+        </LinearLayout>
+    </FrameLayout>
+
+    <!-- Clean screen: tap anywhere to bring the controls back. -->
+    <View
+        android:id="@+id/restore_ui"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone" />
+
+    <!-- Heads-up before dimming, so the screen never goes dark without warning. -->
+    <LinearLayout
+        android:id="@+id/dim_warning"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top"
+        android:layout_marginHorizontal="16dp"
+        android:background="@drawable/bg_card"
+        android:elevation="8dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/dim_warning_count"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="@drawable/bg_icon_circle"
+            android:gravity="center"
+            android:textColor="@color/brand"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="14dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/dim_warning_title"
+                style="@style/Text.Vrmdroid.Body"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textStyle="bold" />
+
+            <TextView
+                style="@style/Text.Vrmdroid.Caption"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="@string/dim_warn_body" />
+
+            <TextView
+                style="@style/Text.Vrmdroid.Caption"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="@string/dim_warn_cancel"
+                android:textColor="@color/brand" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Idle dim: black cover while nobody is looking; tracking keeps running underneath. -->
+    <FrameLayout
+        android:id="@+id/dim_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@android:color/black"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:id="@+id/dim_badge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:alpha="0.55"
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:background="@drawable/bg_pill"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="14dp">
+
+                <View
+                    android:id="@+id/dim_dot"
+                    android:layout_width="8dp"
+                    android:layout_height="8dp"
+                    android:background="@drawable/bg_dot" />
+
+                <TextView
+                    android:id="@+id/dim_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:maxLines="1"
+                    android:textColor="@color/text_primary"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <TextView
+                style="@style/Text.Vrmdroid.Caption"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="@string/dim_hint"
+                android:textColor="@color/text_tertiary" />
+        </LinearLayout>
+    </FrameLayout>
+
+    <!-- Face-forward guide shown while calibrating. -->
+    <com.ouor.vrmdroid.ui.CalibrationGuideView
+        android:id="@+id/calibration_guide"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
+</FrameLayout>

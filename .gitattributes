@@ -1,0 +1,27 @@
+# Normalize text to LF in the repository; check out with the platform default.
+* text=auto
+
+# Scripts must keep the line endings their shells expect.
+gradlew text eol=lf
+*.sh text eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Unity serialized assets are text (YAML); keep them LF so the editor doesn't churn diffs.
+*.unity text eol=lf
+*.prefab text eol=lf
+*.asset text eol=lf
+*.meta text eol=lf
+*.mat text eol=lf
+*.asmdef text eol=lf
+*.inputactions text eol=lf
+
+# Binaries
+*.png binary
+*.jpg binary
+*.webp binary
+*.exr binary
+*.jar binary
+*.task binary
+*.vrm binary
+*.glb binary

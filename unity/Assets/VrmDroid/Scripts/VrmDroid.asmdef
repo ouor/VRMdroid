@@ -1,0 +1,19 @@
+{
+    "name": "VrmDroid",
+    "rootNamespace": "VrmDroid",
+    "references": [
+        "VRM10",
+        "UniGLTF",
+        "UniGLTF.Utils",
+        "Unity.InputSystem"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

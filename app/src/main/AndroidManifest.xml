@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-feature
+        android:name="android.hardware.camera.front"
+        android:required="true" />
+
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Vrmdroid">
+
+        <!-- configChanges: the embedded Unity player must not be recreated (its teardown ends the process). -->
+        <activity
+            android:name=".MainActivity"
+            android:configChanges="mcc|mnc|locale|touchscreen|keyboard|keyboardHidden|navigation|orientation|screenLayout|uiMode|screenSize|smallestScreenSize|fontScale|layoutDirection|density"
+            android:exported="true"
+            android:launchMode="singleTask">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".settings.SettingsActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.ConnectActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.OnboardingActivity"
+            android:exported="false" />
+
+        <service
+            android:name=".service.TrackingService"
+            android:exported="false"
+            android:foregroundServiceType="camera" />
+
+        <!-- Unity is embedded in MainActivity; drop unityLibrary's standalone activity. -->
+        <activity
+            android:name="com.unity3d.player.UnityPlayerActivity"
+            tools:node="remove" />
+    </application>
+
+</manifest>
