@@ -172,9 +172,9 @@ class MainActivity : AppCompatActivity(), UnityActivitySupport {
                     guide.visibility != View.VISIBLE &&
                     lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
             },
-            // Nobody is looking: stop drawing the avatar to save heat and battery.
-            onDim = { unityHost?.onPause() },
-            onWake = { unityHost?.onResume() },
+            // Nobody is looking: barely draw the avatar to save heat and battery.
+            onDim = { unityHost?.setLowPower(true) },
+            onWake = { unityHost?.setLowPower(false) },
         ).also { it.start(lifecycleScope) }
 
         lifecycleScope.launch {
