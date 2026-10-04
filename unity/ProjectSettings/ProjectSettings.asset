@@ -72,7 +72,7 @@ PlayerSettings:
   androidStartInFullscreen: 1
   androidRenderOutsideSafeArea: 1
   androidUseSwappy: 0
-  androidRequestedVisibleInsets: 0
+  androidRequestedVisibleInsets: 2
   androidSystemBarsBehavior: 2
   androidDisplayOptions: 1
   androidBlitType: 0
