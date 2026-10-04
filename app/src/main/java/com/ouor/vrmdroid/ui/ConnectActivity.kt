@@ -184,14 +184,13 @@ class ConnectActivity : AppCompatActivity() {
         statusJob = lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 TrackingHub.status.collect { s ->
-                    val connected = s.pcLink == PcLink.CONNECTED
+                    val sending = s.running && s.pcLink == PcLink.SENDING
                     // Only spin while something is actually happening.
-                    spinner.visibility = if (connected || !s.running) View.GONE else View.VISIBLE
-                    check.visibility = if (connected) View.VISIBLE else View.GONE
+                    spinner.visibility = if (sending || !s.running) View.GONE else View.VISIBLE
+                    check.visibility = if (sending) View.VISIBLE else View.GONE
                     statusText.text = when {
                         !s.running -> getString(R.string.connect_need_start)
-                        connected -> getString(R.string.connect_connected)
-                        p == Program.VMC && s.pcLink == PcLink.SENDING -> getString(R.string.connect_vmc_sending)
+                        sending -> getString(R.string.connect_sending)
                         else -> getString(R.string.connect_waiting)
                     }
                 }

@@ -15,7 +15,6 @@ import androidx.lifecycle.lifecycleScope
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.button.MaterialButton
 import com.ouor.vrmdroid.R
-import com.ouor.vrmdroid.service.PcLink
 import com.ouor.vrmdroid.service.TrackingHub
 import com.ouor.vrmdroid.service.TrackingStatus
 import kotlinx.coroutines.launch
@@ -118,7 +117,6 @@ object StatusSheet {
                 else append(activity.getString(R.string.status_off))
                 s.error?.let { append("\n").append(it) }
             }
-            connect.visibility = if (s.pcLink == PcLink.CONNECTED) android.view.View.GONE else android.view.View.VISIBLE
         }
 
         val job = activity.lifecycleScope.launch { TrackingHub.status.collect(::render) }

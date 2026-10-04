@@ -323,7 +323,6 @@ class TrackingService : LifecycleService() {
         val host = settings.targetHost
         val link = when {
             protocol == OutputProtocol.NONE -> PcLink.OFF
-            protocol == OutputProtocol.IFACIALMOCAP && handshakeHost != null && handshakeHost == host -> PcLink.CONNECTED
             host.isNotEmpty() -> PcLink.SENDING
             else -> PcLink.WAITING
         }

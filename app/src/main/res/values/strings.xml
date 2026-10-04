@@ -34,8 +34,7 @@
     <string name="error_camera_lost">카메라를 쓸 수 없어요. 다른 앱이 카메라를 쓰고 있는지 확인해 주세요.</string>
     <string name="pill_no_face">얼굴이 안 보여요</string>
     <string name="pill_face">얼굴 인식 중</string>
-    <string name="pill_pc_connected">PC 연결됨</string>
-    <string name="pill_pc_sending">PC로 보내는 중</string>
+    <string name="pill_pc_sending">PC에 전송 중</string>
     <string name="pill_pc_waiting">PC 연결을 기다려요</string>
 
     <!-- Calibration guide -->
@@ -56,8 +55,7 @@
     <string name="status_no_face">얼굴을 찾고 있어요</string>
     <string name="status_pc_off">보내지 않아요 (폰에서만 보기)</string>
     <string name="status_pc_waiting">PC 프로그램이 연결하기를 기다려요</string>
-    <string name="status_pc_sending">%1$s로 보내고 있어요</string>
-    <string name="status_pc_connected">%1$s와 연결됐어요</string>
+    <string name="status_pc_sending">%1$s에 전송 중이에요</string>
     <string name="status_connect_cta">PC와 연결하기</string>
     <string name="status_details">자세히</string>
     <string name="copied">주소를 복사했어요</string>
@@ -113,8 +111,7 @@
     <string name="connect_pc_address_invalid">주소 형식을 확인해 주세요 (예: 192.168.0.10)</string>
     <string name="connect_pc_address_help">PC에서 \'명령 프롬프트\'를 열고 ipconfig를 입력하면 나오는 IPv4 주소예요</string>
     <string name="connect_waiting">PC가 연결하기를 기다리고 있어요…</string>
-    <string name="connect_connected">연결됐어요! PC의 아바타가 따라 움직여요</string>
-    <string name="connect_vmc_sending">PC로 보내고 있어요. PC의 아바타가 움직이는지 확인해 주세요</string>
+    <string name="connect_sending">PC에 전송 중이에요. PC의 아바타가 움직이는지 확인해 주세요</string>
     <string name="connect_need_start">메인 화면에서 \'시작하기\'를 누르면 연결돼요</string>
     <string name="connect_trouble">잘 안 되나요? 폰과 PC가 같은 와이파이에 연결돼 있는지 확인해 주세요.</string>
 

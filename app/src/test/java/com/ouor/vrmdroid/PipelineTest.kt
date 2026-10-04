@@ -145,3 +145,22 @@ class VmcArmPoseTest {
         assertTrue("left arm $left", left[1] < -0.9f && left[0] < 0f)
     }
 }
+
+class StatusPillTest {
+    private val sending = com.ouor.vrmdroid.service.TrackingStatus(
+        running = true, faceDetected = true, pcLink = com.ouor.vrmdroid.service.PcLink.SENDING,
+    )
+
+    @Test fun sendingNeverClaimsAConnection() {
+        assertEquals(R.string.pill_pc_sending, com.ouor.vrmdroid.ui.StatusText.pillRes(sending).first)
+    }
+
+    @Test fun errorWinsOverEverything() {
+        val s = sending.copy(faceDetected = false, error = "boom")
+        assertEquals(R.string.pill_error, com.ouor.vrmdroid.ui.StatusText.pillRes(s).first)
+    }
+
+    @Test fun noFaceWinsOverPcState() {
+        assertEquals(R.string.pill_no_face, com.ouor.vrmdroid.ui.StatusText.pillRes(sending.copy(faceDetected = false)).first)
+    }
+}
