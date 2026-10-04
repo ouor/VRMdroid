@@ -17,10 +17,11 @@ enum class PcLink {
     OFF,
     /** We don't know where the PC is yet. */
     WAITING,
-    /** Sending to an address, but the PC hasn't confirmed it's listening. */
+    /**
+     * Sending to an address. UDP has no acknowledgement, so we never claim the PC is
+     * "connected": a PC app that said hello once may have quit since.
+     */
     SENDING,
-    /** The PC app contacted us (iFacialMocap handshake). */
-    CONNECTED,
 }
 
 data class TrackingStatus(
