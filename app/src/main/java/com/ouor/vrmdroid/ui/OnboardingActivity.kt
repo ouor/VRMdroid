@@ -177,7 +177,7 @@ class OnboardingActivity : AppCompatActivity() {
                 primary(getString(R.string.ob_avatar_cta)) {
                     pickVrm.launch(arrayOf("application/octet-stream", "model/gltf-binary", "*/*"))
                 }
-                secondary(getString(R.string.ob_later)) { go(Step.WHERE) }
+                secondary(getString(R.string.ob_avatar_sample)) { go(Step.WHERE) }
             }
             Step.WHERE -> {
                 body.addView(display(getString(R.string.ob_where_title)))

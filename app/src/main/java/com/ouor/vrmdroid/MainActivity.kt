@@ -131,6 +131,11 @@ class MainActivity : AppCompatActivity(), UnityActivitySupport {
         findViewById<View>(R.id.action_adjust).setOnClickListener { AdjustSheet.show(this, ::setFacePreviewVisible) }
         findViewById<View>(R.id.action_avatar).setOnClickListener { pickAvatar() }
         findViewById<View>(R.id.empty_cta).setOnClickListener { pickAvatar() }
+        findViewById<View>(R.id.sample_chip).setOnClickListener { pickAvatar() }
+        lifecycleScope.launch {
+            withContext(Dispatchers.IO) { AvatarStore.ensureAvatar(this@MainActivity) }
+            updateEmptyState()
+        }
         findViewById<View>(R.id.empty_help).setOnClickListener {
             MaterialAlertDialogBuilder(this)
                 .setTitle(R.string.vrm_help_title)
@@ -228,6 +233,10 @@ class MainActivity : AppCompatActivity(), UnityActivitySupport {
                 bottom = bottomPad + bars.bottom,
             )
             facePreview.updateLayoutParams<FrameLayout.LayoutParams> { topMargin = bars.top + dp(72) }
+            findViewById<View>(R.id.sample_chip).updateLayoutParams<FrameLayout.LayoutParams> {
+                topMargin = bars.top + dp(72)
+                leftMargin = dp(16) + bars.left
+            }
             // The power-saving countdown card sits just below the status pill.
             findViewById<View>(R.id.dim_warning).updateLayoutParams<FrameLayout.LayoutParams> { topMargin = bars.top + dp(72) }
             insets
@@ -312,6 +321,8 @@ class MainActivity : AppCompatActivity(), UnityActivitySupport {
     private fun updateEmptyState() {
         val hasAvatar = AvatarStore.file(this).exists()
         emptyState.visibility = if (hasAvatar || unityHost == null) View.GONE else View.VISIBLE
+        val sample = unityHost != null && AvatarStore.isSample(this)
+        findViewById<View>(R.id.sample_chip).visibility = if (sample) View.VISIBLE else View.GONE
     }
 
     private fun setFacePreviewVisible(visible: Boolean) {

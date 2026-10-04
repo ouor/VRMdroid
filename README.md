@@ -61,6 +61,11 @@ PC의 VSeeFace / VNyan / Warudo 등으로 보내는 앱입니다. 폰에서는 U
 PC 연결 / 내 표정 / 화면 / 고급(접힘) 순서입니다. 고급에는 현재 보내는 방식에 해당하는 항목만 나옵니다
 (고개 방향 반대로, 포트, 보내는 횟수, VMC 세부 항목, 그래픽 가속). 맨 아래 **기본값으로 되돌리기**.
 
+## 샘플 아바타
+처음 실행할 때 내 VRM이 없으면 샘플 아바타 *Sendagaya Shibu*(VRoid Studio 샘플, CC0)를 보여 줍니다.
+파일은 저장소에 넣지 않고 빌드할 때 [madjin/vrm-samples](https://github.com/madjin/vrm-samples)에서 내려받아 SHA-256으로 확인합니다.
+메인 화면의 "내 아바타로 바꾸기"로 언제든 바꿀 수 있습니다.
+
 ## VRoid Studio에 대해
 VRoid Studio는 모델을 만드는 도구이고 외부 트래킹 입력을 받지 않습니다.
 VRoid로 만든 VRM을 VSeeFace 등에 불러온 뒤 이 앱의 데이터를 받으면 됩니다.

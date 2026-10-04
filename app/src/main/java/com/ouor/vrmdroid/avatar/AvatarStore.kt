@@ -13,7 +13,29 @@ import java.io.File
 object AvatarStore {
     const val FILE_NAME = "avatar.vrm"
 
+    private const val SAMPLE_ASSET = "sample_avatar.vrm"
+    private const val SAMPLE_MARKER = "avatar.sample"
+
     fun file(context: Context): File = File(context.getExternalFilesDir(null), FILE_NAME)
+
+    /** True while the bundled sample avatar is in place, i.e. the user hasn't picked their own. */
+    fun isSample(context: Context): Boolean =
+        File(context.getExternalFilesDir(null), SAMPLE_MARKER).exists() && file(context).exists()
+
+    /**
+     * Puts the bundled sample avatar in place when there is no avatar yet, so the first launch
+     * isn't an empty stage. Returns true if an avatar exists afterwards. Call off the main thread.
+     */
+    fun ensureAvatar(context: Context): Boolean {
+        if (file(context).exists()) return true
+        val dir = context.getExternalFilesDir(null) ?: return false
+        return runCatching {
+            val tmp = File(dir, "$FILE_NAME.tmp")
+            context.assets.open(SAMPLE_ASSET).use { input -> tmp.outputStream().use { input.copyTo(it) } }
+            File(dir, SAMPLE_MARKER).createNewFile()
+            moveIntoPlace(tmp, file(context))
+        }.isSuccess
+    }
 
 
     /** Copies the picked document into place atomically. Call off the main thread. */
@@ -31,12 +53,17 @@ object AvatarStore {
                 input.copyTo(out)
             }
         }
-        val target = file(context)
+        moveIntoPlace(tmp, file(context))
+        File(dir, SAMPLE_MARKER).delete()
+        return name
+    }
+
+    /** Unity polls for the file, so it must appear complete, never half-written. */
+    private fun moveIntoPlace(tmp: File, target: File) {
         if (!tmp.renameTo(target)) {
             tmp.copyTo(target, overwrite = true)
             tmp.delete()
         }
-        return name
     }
 
     private fun queryName(context: Context, uri: Uri): String? =
