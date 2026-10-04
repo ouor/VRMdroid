@@ -55,6 +55,8 @@ namespace VrmDroid.Editor
             PlayerSettings.runInBackground = true;
             // Even frame pacing, and lets the panel drop from 120 Hz to the rate we render at.
             PlayerSettings.Android.optimizedFramePacing = true;
+            // GPU frame times for PreviewApp's perf log.
+            PlayerSettings.enableFrameTimingStats = true;
 
             TrimRuntimeCost();
             IncludeRuntimeShaders();

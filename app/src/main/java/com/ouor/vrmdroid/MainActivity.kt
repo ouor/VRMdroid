@@ -212,6 +212,13 @@ class MainActivity : AppCompatActivity(), UnityActivitySupport {
             }
         }
 
+        // Benchmarks: `adb shell am start -n com.ouor.vrmdroid/.MainActivity --ez start_tracking true`
+        // (debug builds only) starts tracking without a tap, so runs are repeatable.
+        if (BuildConfig.DEBUG && intent.getBooleanExtra(EXTRA_DEBUG_START, false)) {
+            intent.removeExtra(EXTRA_DEBUG_START)
+            startTracking()
+        }
+
         // Coming from onboarding: guide the first "look straight ahead" once the camera is up.
         if (intent.getBooleanExtra(EXTRA_CALIBRATE, false)) {
             intent.removeExtra(EXTRA_CALIBRATE)
@@ -460,6 +467,7 @@ class MainActivity : AppCompatActivity(), UnityActivitySupport {
 
     companion object {
         const val EXTRA_CALIBRATE = "calibrate"
+        private const val EXTRA_DEBUG_START = "start_tracking"
         private const val LANDSCAPE_PANEL_DP = 440
         private const val CALIBRATE_WAIT_MS = 10_000L
         private const val LANDSCAPE_PANEL_FADE_DP = 72

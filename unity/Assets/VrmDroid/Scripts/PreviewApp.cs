@@ -1,5 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 using UniVRM10;
 
 namespace VrmDroid
@@ -46,10 +48,18 @@ namespace VrmDroid
         const int InteractiveFps = 60;
         const int LowPowerFps = 5;
 
-        // Rendered frame rate, logged next to the host's VrmPerf line (adb logcat -s Unity).
+        // Fraction of the screen resolution the avatar is drawn at, then upscaled. Per-pixel MToon
+        // work dominates the GPU cost, and on a phone screen the difference is hard to see.
+        const float RenderScale = 0.7f;
+
+        // Rendered frame rate and GPU time, logged next to the host's VrmPerf line
+        // (adb logcat -s Unity).
         const float PerfLogSeconds = 5f;
         float _perfWindowStart;
         int _perfFrames;
+        readonly FrameTiming[] _timing = new FrameTiming[1];
+        double _gpuMs, _cpuMs;
+        int _timedFrames;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Bootstrap()
@@ -64,6 +74,7 @@ namespace VrmDroid
         void Awake()
         {
             Application.targetFrameRate = IdleFps;
+            if (GraphicsSettings.currentRenderPipeline is UniversalRenderPipelineAsset urp) urp.renderScale = RenderScale;
             Screen.sleepTimeout = SleepTimeout.NeverSleep;
             if (avatar == null) avatar = GetComponent<AvatarController>();
             if (viewCamera == null) viewCamera = Camera.main;
@@ -121,11 +132,22 @@ namespace VrmDroid
         void LogFrameRate()
         {
             _perfFrames++;
+            FrameTimingManager.CaptureFrameTimings();
+            if (FrameTimingManager.GetLatestTimings(1, _timing) == 1 && _timing[0].gpuFrameTime > 0)
+            {
+                _gpuMs += _timing[0].gpuFrameTime;
+                _cpuMs += _timing[0].cpuMainThreadFrameTime;
+                _timedFrames++;
+            }
             var elapsed = Time.unscaledTime - _perfWindowStart;
             if (elapsed < PerfLogSeconds) return;
-            Debug.Log($"[VrmPerf] unity fps={_perfFrames / elapsed:F1} target={Application.targetFrameRate}");
+            var gpu = _timedFrames > 0 ? $"{_gpuMs / _timedFrames:F1}" : "-";
+            var cpu = _timedFrames > 0 ? $"{_cpuMs / _timedFrames:F1}" : "-";
+            Debug.Log($"[VrmPerf] unity fps={_perfFrames / elapsed:F1} target={Application.targetFrameRate} gpu={gpu}ms main={cpu}ms scale={RenderScale}");
             _perfFrames = 0;
             _perfWindowStart = Time.unscaledTime;
+            _gpuMs = _cpuMs = 0;
+            _timedFrames = 0;
         }
 
         void HandleInput()
