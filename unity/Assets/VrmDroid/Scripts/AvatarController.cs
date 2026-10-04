@@ -38,7 +38,18 @@ namespace VrmDroid
         [SerializeField] float relaxSpeed = 3f;
 
         public Vrm10Instance Instance { get; private set; }
-        public string Status { get; private set; } = "";
+        AvatarState _state;
+        /// <summary>Loading/failure state; the host app turns it into on-screen text.</summary>
+        public AvatarState State
+        {
+            get => _state;
+            private set
+            {
+                if (_state == value) return;
+                _state = value;
+                HostBridge.ReportAvatarState(value);
+            }
+        }
         public bool UsesPerfectSync { get; private set; }
 
         public event Action<Vrm10Instance> AvatarLoaded;
@@ -102,7 +113,7 @@ namespace VrmDroid
             var path = VrmPath;
             if (!File.Exists(path))
             {
-                if (Instance == null) Status = ""; // the host app shows its own "no avatar" screen
+                if (Instance == null) State = AvatarState.None; // the host app shows its own "no avatar" screen
                 return;
             }
             var writeTime = File.GetLastWriteTimeUtc(path);
@@ -115,7 +126,7 @@ namespace VrmDroid
         async Task LoadAsync(string path, DateTime writeTime)
         {
             _loading = true;
-            Status = "아바타를 불러오고 있어요…";
+            State = AvatarState.Loading;
             // Free the current avatar first: holding old and new models (plus the file bytes)
             // at once doubles peak memory, which can get the whole app killed on low-end phones.
             if (Instance != null)
@@ -131,11 +142,11 @@ namespace VrmDroid
                 Instance = instance;
                 _loadedWriteTime = writeTime;
                 Setup(instance);
-                Status = "";
+                State = AvatarState.None;
                 if (_restoredNotice)
                 {
                     _restoredNotice = false;
-                    StartCoroutine(ShowNotice("새 아바타를 불러오지 못해서 이전 아바타로 돌아왔어요."));
+                    StartCoroutine(ShowRestored());
                 }
                 AvatarLoaded?.Invoke(instance);
             }
@@ -147,11 +158,11 @@ namespace VrmDroid
                 {
                     // The restored file has its own write time, so the next check loads it.
                     _restoredNotice = true;
-                    Status = "";
+                    State = AvatarState.None;
                 }
                 else
                 {
-                    Status = "아바타를 불러오지 못했어요.\n다른 VRM 파일로 다시 시도해 주세요.";
+                    State = AvatarState.Failed;
                 }
             }
             finally
@@ -184,11 +195,11 @@ namespace VrmDroid
             }
         }
 
-        System.Collections.IEnumerator ShowNotice(string message)
+        System.Collections.IEnumerator ShowRestored()
         {
-            Status = message;
+            State = AvatarState.Restored;
             yield return new WaitForSecondsRealtime(4f);
-            if (Status == message) Status = "";
+            if (State == AvatarState.Restored) State = AvatarState.None;
         }
 
         void Setup(Vrm10Instance instance)

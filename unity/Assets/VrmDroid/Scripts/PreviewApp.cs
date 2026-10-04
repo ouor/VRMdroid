@@ -45,7 +45,6 @@ namespace VrmDroid
         const int IdleFps = 30;
         const int InteractiveFps = 60;
         const int LowPowerFps = 5;
-        GUIStyle _style;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Bootstrap()
@@ -194,19 +193,5 @@ namespace VrmDroid
 
         void Zoom(float amount) => distance = Mathf.Clamp(distance + amount, minDistance, maxDistance);
 
-        void OnGUI()
-        {
-            // The host app shows the empty state and live status; only loading/errors come from here.
-            var status = avatar.Status;
-            if (string.IsNullOrEmpty(status)) return;
-            _style ??= new GUIStyle(GUI.skin.label)
-            {
-                fontSize = Mathf.RoundToInt(Mathf.Max(Screen.dpi, 160f) / 160f * 15f),
-                wordWrap = true,
-                alignment = TextAnchor.MiddleCenter,
-                normal = { textColor = new Color(0.66f, 0.64f, 0.72f) },
-            };
-            GUI.Label(new Rect(32, Screen.height * 0.5f - 100, Screen.width - 64, 200), status, _style);
-        }
     }
 }

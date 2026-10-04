@@ -177,6 +177,9 @@
     <string name="ob_avatar_title">내 아바타를\n불러와 주세요</string>
     <string name="ob_avatar_body">폰에 저장한 VRM 파일을 골라 주세요. 아직 없으면 샘플 아바타로 먼저 써 볼 수 있어요.</string>
     <string name="ob_avatar_sample">샘플 아바타로 시작할게요</string>
+    <string name="avatar_loading">아바타를 불러오고 있어요…</string>
+    <string name="avatar_failed">아바타를 불러오지 못했어요.\n다른 VRM 파일로 다시 시도해 주세요.</string>
+    <string name="avatar_restored">새 아바타를 불러오지 못해서 이전 아바타로 돌아왔어요.</string>
     <string name="sample_chip_label">샘플 아바타</string>
     <string name="sample_chip_action">내 아바타로 바꾸기</string>
     <string name="ob_avatar_cta">VRM 파일 고르기</string>

@@ -22,7 +22,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
 import androidx.lifecycle.Lifecycle
@@ -31,7 +33,9 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.ouor.vrmdroid.avatar.AvatarState
 import com.ouor.vrmdroid.avatar.AvatarStore
+import com.ouor.vrmdroid.avatar.UnityBridge
 import com.ouor.vrmdroid.avatar.UnityActivitySupport
 import com.ouor.vrmdroid.avatar.UnityHost
 import com.ouor.vrmdroid.output.SentDataMonitor
@@ -109,6 +113,11 @@ class MainActivity : AppCompatActivity(), UnityActivitySupport {
             return
         }
         setContentView(R.layout.activity_main)
+        // A clean stage: the status bar stays hidden and peeks in on a swipe from the top.
+        WindowCompat.getInsetsController(window, window.decorView).apply {
+            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            hide(WindowInsetsCompat.Type.statusBars())
+        }
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         facePreview = findViewById(R.id.face_preview)
@@ -183,6 +192,7 @@ class MainActivity : AppCompatActivity(), UnityActivitySupport {
                 launch { TrackingHub.status.collect { render(it); dimmer?.render(it) } }
                 launch { TrackingHub.latest.collect { facePreview.result = it } }
                 launch { TrackingHub.pcFound.collect(::showPcFound) }
+                launch { UnityBridge.avatarState.collect(::renderAvatarState) }
                 launch {
                     // A few refreshes per second keeps the numbers readable and cheap.
                     while (true) {
@@ -275,7 +285,8 @@ class MainActivity : AppCompatActivity(), UnityActivitySupport {
         val host = UnityHost(this)
         val view = host.view ?: return attachLandmarkStage()
         unityHost = host
-        findViewById<FrameLayout>(R.id.stage).addView(view, FrameLayout.LayoutParams(
+        // Index 0: under the status text that shares the stage.
+        findViewById<FrameLayout>(R.id.stage).addView(view, 0, FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT,
         ))
         facePreview.compact = true
@@ -320,6 +331,20 @@ class MainActivity : AppCompatActivity(), UnityActivitySupport {
         // Calibrating only makes sense while the camera is running.
         calibrateAction.alpha = if (s.running) 1f else 0.4f
         ViewCompat.setStateDescription(calibrateAction, if (s.running) null else getString(R.string.calib_need_start))
+    }
+
+    private fun renderAvatarState(state: AvatarState) {
+        val text = findViewById<TextView>(R.id.stage_status)
+        val message = when (state) {
+            AvatarState.NONE -> null
+            AvatarState.LOADING -> R.string.avatar_loading
+            AvatarState.FAILED -> R.string.avatar_failed
+            AvatarState.RESTORED -> R.string.avatar_restored
+        }
+        text.visibility = if (message == null) View.GONE else View.VISIBLE
+        if (message != null) text.setText(message)
+        // A rolled-back import may have brought the sample avatar back.
+        if (state == AvatarState.NONE || state == AvatarState.RESTORED) updateEmptyState()
     }
 
     private fun updateEmptyState() {

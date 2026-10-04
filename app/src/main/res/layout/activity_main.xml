@@ -10,7 +10,21 @@
     <FrameLayout
         android:id="@+id/stage"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent">
+
+        <!-- Avatar loading and errors, reported by Unity (UnityBridge). -->
+        <TextView
+            android:id="@+id/stage_status"
+            style="@style/Text.Vrmdroid.Body"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginHorizontal="32dp"
+            android:accessibilityLiveRegion="polite"
+            android:gravity="center"
+            android:textColor="@color/text_secondary"
+            android:visibility="gone" />
+    </FrameLayout>
 
     <!-- No avatar yet: one clear next step. -->
     <LinearLayout

@@ -46,7 +46,12 @@ namespace VrmDroid.Editor
             // VRMs load their normal maps at runtime as plain RGB(A) textures. DXT5nm-style decoding
             // would read alpha as the X component and bend every normal sideways.
             PlayerSettings.SetNormalMapEncoding(NamedBuildTarget.Android, NormalMapEncoding.XYZ);
+            // The host activity owns orientation and system bars. AutoRotation leaves the
+            // activity's requested orientation alone (stays UNSPECIFIED, so rotation lock works).
+            // The player applies its inset request when it starts; match what MainActivity asks
+            // for (status bar hidden, navigation bar shown) so the two never fight.
             PlayerSettings.defaultInterfaceOrientation = UIOrientation.AutoRotation;
+            PlayerSettings.Android.requestedVisibleInsets = AndroidWindowInsetsType.NavigationBars;
             PlayerSettings.runInBackground = true;
 
             IncludeRuntimeShaders();
