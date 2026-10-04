@@ -37,6 +37,7 @@ import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
+import com.ouor.vrmdroid.BuildConfig
 import com.ouor.vrmdroid.MainActivity
 import com.ouor.vrmdroid.R
 import com.ouor.vrmdroid.avatar.UnityHost
@@ -54,6 +55,7 @@ import com.ouor.vrmdroid.tracking.FrameConverter
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicReference
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -84,6 +86,13 @@ class TrackingService : LifecycleService() {
     private var started = false
     private var wifiLock: WifiManager.WifiLock? = null
     private val perf = PerfStats(SystemClock::uptimeMillis)
+    private val thermal = ThermalGovernor()
+    /** The level in effect; read per frame on the analysis thread. */
+    @Volatile private var thermalLevel = ThermalLevel.NORMAL
+    /** Latest thermal headroom reading (NaN when unknown), shared with the perf log. */
+    @Volatile private var headroom = Float.NaN
+    /** Uptime of the last frame handed to the tracker, for the [ThermalLevel.maxTrackingHz] cap. */
+    private var lastSubmitAt = 0L
 
     /** Keeps the analysis rotation in step with the display (e.g. phone moved to a landscape stand). */
     private val displayListener = object : DisplayManager.DisplayListener {
@@ -131,6 +140,26 @@ class TrackingService : LifecycleService() {
         engine.config = TrackingConfig.from(settings)
         settings.prefs.registerOnSharedPreferenceChangeListener(prefsListener)
         lifecycleScope.launch { TrackingHub.calibrationRequests.collect { engine.requestCalibration() } }
+        lifecycleScope.launch {
+            val power = getSystemService(PowerManager::class.java)
+            while (true) {
+                // The only caller: Android returns NaN when headroom is asked for more than once a second.
+                headroom = power.getThermalHeadroom(THERMAL_FORECAST_SEC)
+                thermal.update(headroom, power.currentThermalStatus)
+                // Debug builds can force a level to try it without heating the phone:
+                // a string pref "debug_thermal_level" = WARM / HOT.
+                val forced = if (BuildConfig.DEBUG) {
+                    settings.prefs.getString(KEY_DEBUG_THERMAL, null)?.let { name -> ThermalLevel.entries.firstOrNull { it.name == name } }
+                } else null
+                val level = forced ?: thermal.level
+                if (level != thermalLevel) {
+                    thermalLevel = level
+                    Log.i(TAG, "thermal level $level")
+                    TrackingHub.updateStatus { it.copy(thermalLevel = level) }
+                }
+                delay(THERMAL_POLL_MS)
+            }
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -208,6 +237,12 @@ class TrackingService : LifecycleService() {
     private fun track(image: ImageProxy) {
         val t = tracker
         if (t == null || stopped) { image.close(); return }
+        // When hot, skip frames to cap the tracking rate. Closing the frame lets CameraX deliver
+        // the next one.
+        val maxHz = thermalLevel.maxTrackingHz
+        val now = SystemClock.uptimeMillis()
+        if (maxHz > 0 && now - lastSubmitAt < 1000L / maxHz - FRAME_SLACK_MS) { image.close(); return }
+        lastSubmitAt = now
         // CameraX delivers a frame only after the previous one is closed, so this is normally null.
         inFlight.getAndSet(image)?.close()
         // If the tracker never answers (e.g. GPU context lost), release the frame so the camera
@@ -270,10 +305,13 @@ class TrackingService : LifecycleService() {
         longArrayOf(SystemClock.uptimeMillis() - sensorMs, SystemClock.elapsedRealtime() - sensorMs)
             .firstOrNull { it in 0..MAX_FRAME_AGE_MS }?.toFloat()
 
-    /** Thermal state for the perf log; headroom 1.0 is where the device starts throttling. */
+    /**
+     * Thermal state for the perf log; headroom (forecast a few seconds ahead) 1.0 is where the
+     * device starts throttling.
+     */
     private fun deviceState(): String {
         val power = getSystemService(PowerManager::class.java)
-        val headroom = power.getThermalHeadroom(0)
+        val headroom = headroom
         val battery = registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
             ?.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, Int.MIN_VALUE)?.takeIf { it != Int.MIN_VALUE }
         return "thermal=${power.currentThermalStatus}" +
@@ -386,6 +424,11 @@ class TrackingService : LifecycleService() {
         private const val PERF_TAG = "VrmPerf"
         private const val MAX_FRAME_AGE_MS = 2_000L
         private const val STALL_MS = 1_000L
+        private const val THERMAL_POLL_MS = 5_000L
+        /** Forecast a few seconds ahead so the preview eases off before throttling starts. */
+        private const val THERMAL_FORECAST_SEC = 5
+        private const val FRAME_SLACK_MS = 10L
+        private const val KEY_DEBUG_THERMAL = "debug_thermal_level"
 
         fun start(context: Context) {
             ContextCompat.startForegroundService(context, Intent(context, TrackingService::class.java))

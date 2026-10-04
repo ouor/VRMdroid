@@ -7,6 +7,8 @@ import com.ouor.vrmdroid.service.EngineMessages
 import com.ouor.vrmdroid.service.PcLink
 import com.ouor.vrmdroid.service.PerfStats
 import com.ouor.vrmdroid.service.SenderSettings
+import com.ouor.vrmdroid.service.ThermalGovernor
+import com.ouor.vrmdroid.service.ThermalLevel
 import com.ouor.vrmdroid.service.TrackingEngine
 import com.ouor.vrmdroid.service.TrackingHub
 import com.ouor.vrmdroid.service.TrackingStatus
@@ -224,5 +226,32 @@ class PerfStatsTest {
         assertEquals(50f, PerfStats.percentile(sorted, 0.5f))
         assertEquals(95f, PerfStats.percentile(sorted, 0.95f))
         assertEquals(7f, PerfStats.percentile(floatArrayOf(7f), 0.95f))
+    }
+}
+
+class ThermalGovernorTest {
+    private val governor = ThermalGovernor()
+
+    @Test fun stepsUpRightAwayAndDownOnlyAfterCalmReadings() {
+        assertFalse(governor.update(0.80f, 0))
+        assertEquals(ThermalLevel.NORMAL, governor.level)
+        assertTrue(governor.update(1.02f, 0))
+        assertEquals(ThermalLevel.HOT, governor.level)
+
+        // Just under the threshold isn't calm enough to step down.
+        repeat(20) { governor.update(0.98f, 0) }
+        assertEquals(ThermalLevel.HOT, governor.level)
+
+        repeat(ThermalGovernor.CALM_READINGS - 1) { governor.update(0.90f, 0) }
+        assertEquals(ThermalLevel.HOT, governor.level)
+        assertTrue(governor.update(0.90f, 0))
+        assertEquals(ThermalLevel.WARM, governor.level) // one step at a time
+    }
+
+    @Test fun thermalStatusAloneRaisesTheLevel() {
+        governor.update(Float.NaN, ThermalGovernor.STATUS_LIGHT)
+        assertEquals(ThermalLevel.WARM, governor.level)
+        governor.update(Float.NaN, ThermalGovernor.STATUS_MODERATE)
+        assertEquals(ThermalLevel.HOT, governor.level)
     }
 }

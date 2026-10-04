@@ -1,3 +1,4 @@
+using System.Globalization;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Rendering;
@@ -62,7 +63,11 @@ namespace VrmDroid
 
         // Fraction of the screen resolution the avatar is drawn at, then upscaled. Per-pixel MToon
         // work dominates the GPU cost, and on a phone screen the difference is hard to see.
-        const float RenderScale = 0.7f;
+        // The host lowers it further when the phone runs hot (SetRenderBudget).
+        const float DefaultRenderScale = 0.7f;
+        float _renderScale = DefaultRenderScale;
+        int _maxIdleFps = MaxIdleFps;
+        bool _outlines = true;
 
         // Rendered frame rate and GPU time, logged next to the host's VrmPerf line
         // (adb logcat -s Unity).
@@ -87,7 +92,7 @@ namespace VrmDroid
         {
             Application.targetFrameRate = MaxIdleFps;
             _receiver = GetComponent<TrackingReceiver>();
-            if (GraphicsSettings.currentRenderPipeline is UniversalRenderPipelineAsset urp) urp.renderScale = RenderScale;
+            ApplyRenderScale();
             Screen.sleepTimeout = SleepTimeout.NeverSleep;
             if (avatar == null) avatar = GetComponent<AvatarController>();
             if (viewCamera == null) viewCamera = Camera.main;
@@ -101,6 +106,7 @@ namespace VrmDroid
             viewCamera.clearFlags = CameraClearFlags.SolidColor;
             viewCamera.backgroundColor = background;
             avatar.AvatarLoaded += Frame;
+            avatar.AvatarLoaded += _ => ApplyOutlines();
         }
 
         void Frame(Vrm10Instance instance)
@@ -129,11 +135,54 @@ namespace VrmDroid
         /// <summary>Called by the host app (UnitySendMessage) when the screen dims or wakes.</summary>
         public void SetLowPower(string on) => _lowPower = on == "1";
 
+        /// <summary>
+        /// Called by the host app (UnitySendMessage) with "maxFps;renderScale;outlines(0/1)" as the
+        /// phone heats up or cools down, so the preview gives way to face tracking.
+        /// </summary>
+        public void SetRenderBudget(string budget)
+        {
+            var parts = budget.Split(';');
+            if (parts.Length != 3 ||
+                !int.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out var fps) ||
+                !float.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var scale))
+            {
+                Debug.LogWarning($"[VrmDroid] Bad render budget: {budget}");
+                return;
+            }
+            _maxIdleFps = Mathf.Clamp(fps, LowPowerFps, MaxIdleFps);
+            _renderScale = Mathf.Clamp(scale, 0.3f, 1f);
+            _outlines = parts[2] == "1";
+            ApplyRenderScale();
+            ApplyOutlines();
+            Debug.Log($"[VrmDroid] Render budget: {_maxIdleFps} fps, scale {_renderScale}, outlines {_outlines}");
+        }
+
+        void ApplyRenderScale()
+        {
+            if (GraphicsSettings.currentRenderPipeline is UniversalRenderPipelineAsset urp) urp.renderScale = _renderScale;
+        }
+
+        /// <summary>MToon draws outlines in an extra pass per material; switching it off skips those draws.</summary>
+        void ApplyOutlines()
+        {
+            var instance = avatar != null ? avatar.Instance : null;
+            if (instance == null) return;
+            foreach (var renderer in instance.GetComponentsInChildren<Renderer>(true))
+            {
+                foreach (var material in renderer.sharedMaterials)
+                {
+                    if (material != null) material.SetShaderPassEnabled(OutlinePass, _outlines);
+                }
+            }
+        }
+
+        const string OutlinePass = "MToonOutline";
+
         void Update()
         {
             var touching = Touchscreen.current != null && Touchscreen.current.primaryTouch.press.isPressed;
             UpdatePacing();
-            var fps = _lowPower ? LowPowerFps : touching ? InteractiveFps : _pacedFps;
+            var fps = _lowPower ? LowPowerFps : touching ? InteractiveFps : Mathf.Min(_pacedFps, _maxIdleFps);
             if (Application.targetFrameRate != fps) Application.targetFrameRate = fps;
 
             HandleInput();
@@ -185,7 +234,7 @@ namespace VrmDroid
             if (elapsed < PerfLogSeconds) return;
             var gpu = _timedFrames > 0 ? $"{_gpuMs / _timedFrames:F1}" : "-";
             var cpu = _timedFrames > 0 ? $"{_cpuMs / _timedFrames:F1}" : "-";
-            Debug.Log($"[VrmPerf] unity fps={_perfFrames / elapsed:F1} target={Application.targetFrameRate} tracking={_trackingHz:F1}Hz gpu={gpu}ms main={cpu}ms scale={RenderScale}");
+            Debug.Log($"[VrmPerf] unity fps={_perfFrames / elapsed:F1} target={Application.targetFrameRate} tracking={_trackingHz:F1}Hz gpu={gpu}ms main={cpu}ms scale={_renderScale} outlines={_outlines}");
             _perfFrames = 0;
             _perfWindowStart = Time.unscaledTime;
             _gpuMs = _cpuMs = 0;
