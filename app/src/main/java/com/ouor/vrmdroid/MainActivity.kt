@@ -214,7 +214,7 @@ class MainActivity : AppCompatActivity(), UnityActivitySupport {
                 launch {
                     // A few refreshes per second keeps the numbers readable and cheap.
                     while (true) {
-                        if (dataConsole.visibility == View.VISIBLE && !isDimmed) dataConsole.refresh(TrackingHub.status.value.running)
+                        if (dataConsole.visibility == View.VISIBLE && !isDimmed) dataConsole.refresh(TrackingHub.status.value, TrackingHub.latest.value)
                         delay(250)
                     }
                 }

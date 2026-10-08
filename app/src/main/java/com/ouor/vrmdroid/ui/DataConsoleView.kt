@@ -14,6 +14,9 @@ import androidx.core.content.ContextCompat
 import com.ouor.vrmdroid.R
 import com.ouor.vrmdroid.output.SentDataMonitor
 import com.ouor.vrmdroid.processing.EyeGaze
+import com.ouor.vrmdroid.processing.TrackingResult
+import com.ouor.vrmdroid.service.PcLink
+import com.ouor.vrmdroid.service.TrackingStatus
 import com.ouor.vrmdroid.settings.OutputProtocol
 import com.ouor.vrmdroid.tracking.Arkit
 import com.ouor.vrmdroid.tracking.FaceFrame
@@ -21,7 +24,8 @@ import java.util.Locale
 
 /**
  * Real-time debug console: what the PC senders actually transmitted (rate and destination,
- * head angles, all 52 blendshape values as a sparkline, gaze, and the raw payload).
+ * head angles, all 52 blendshape values as a sparkline, gaze, and the raw payload), or, with no
+ * PC yet, what the phone is tracking.
  *
  * Purely informational: it never takes touches, so avatar gestures work through it.
  */
@@ -75,25 +79,41 @@ class DataConsoleView @JvmOverloads constructor(
         setTextColor(color)
     }
 
-    /** Refresh from [SentDataMonitor]; call a few times per second while visible. */
-    fun refresh(trackingRunning: Boolean) {
+    /**
+     * Refresh from [SentDataMonitor]; call a few times per second while visible. With nothing
+     * going to a PC, the head, face and gaze lines show what the phone is tracking instead, so
+     * the console is useful before any PC is connected.
+     */
+    fun refresh(status: TrackingStatus, latest: TrackingResult?) {
         val sample = SentDataMonitor.last
         val (packets, bytes) = SentDataMonitor.rate()
         if (sample == null || packets == 0) {
-            tx.text = if (trackingRunning) "tx    idle · waiting for PC" else "tx    idle · tracking off"
-            head.text = "head  -"
-            face.values = FloatArray(Arkit.COUNT)
-            gaze.text = "gaze  -"
+            tx.text = when {
+                !status.running -> "tx    idle · tracking off"
+                status.pcLink == PcLink.OFF -> String.format(Locale.US, "tx    off · phone only · track %.0fHz", status.fps)
+                else -> String.format(Locale.US, "tx    idle · waiting for PC · track %.0fHz", status.fps)
+            }
+            val local = latest?.subject?.takeIf { status.running && it.detected }
+            if (local == null) {
+                head.text = "head  -"
+                face.values = FloatArray(Arkit.COUNT)
+                gaze.text = "gaze  -"
+            } else {
+                showFace(local)
+            }
             raw.text = "raw   -"
             return
         }
         val proto = if (sample.protocol == OutputProtocol.VMC) "vmc" else "ifm"
-        val f = sample.result.subject
         tx.text = String.format(Locale.US, "tx    %.1fKB/s · %dHz · %s → %s", bytes / 1024f, packets, proto, sample.destination)
+        showFace(sample.result.subject)
+        raw.text = "raw   " + sample.payload.replace('\n', ' ')
+    }
+
+    private fun showFace(f: FaceFrame) {
         head.text = String.format(Locale.US, "head  pitch %6.1f  yaw %6.1f  roll %6.1f", f.pitch, f.yaw, f.roll)
         face.values = f.blendshapes
         gaze.text = gazeText(f)
-        raw.text = "raw   " + sample.payload.replace('\n', ' ')
     }
 
     private fun gazeText(f: FaceFrame): String {
