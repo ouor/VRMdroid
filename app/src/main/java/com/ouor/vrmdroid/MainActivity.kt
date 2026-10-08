@@ -228,14 +228,19 @@ class MainActivity : AppCompatActivity(), UnityActivitySupport {
             startTracking()
         }
 
-        // Coming from onboarding: guide the first "look straight ahead" once the camera is up.
+        // Coming from onboarding: guide the first "look straight ahead" once the camera is up
+        // and the avatar is on screen; a guide over an empty stage is confusing.
         if (intent.getBooleanExtra(EXTRA_CALIBRATE, false)) {
             intent.removeExtra(EXTRA_CALIBRATE)
             lifecycleScope.launch {
                 // The camera can fail to start (permission revoked, camera busy); don't spring the
                 // guide on the user minutes later.
                 val started = withTimeoutOrNull(CALIBRATE_WAIT_MS) { TrackingHub.status.first { it.running } }
-                if (started != null) runCalibration()
+                // A first load of a large VRM can take a while; past that, guide anyway.
+                if (started != null && unityHost != null) {
+                    withTimeoutOrNull(AVATAR_WAIT_MS) { UnityBridge.avatarSettled.first { it } }
+                }
+                if (started != null && TrackingHub.status.value.running) runCalibration()
                 else Toast.makeText(this@MainActivity, R.string.calib_later, Toast.LENGTH_LONG).show()
             }
         }
@@ -479,6 +484,7 @@ class MainActivity : AppCompatActivity(), UnityActivitySupport {
         private const val EXTRA_DEBUG_START = "start_tracking"
         private const val LANDSCAPE_PANEL_DP = 440
         private const val CALIBRATE_WAIT_MS = 10_000L
+        private const val AVATAR_WAIT_MS = 20_000L
         private const val LANDSCAPE_PANEL_FADE_DP = 72
     }
 
